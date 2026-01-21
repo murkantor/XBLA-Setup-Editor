@@ -9,18 +9,4 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
-  <ItemGroup>
-    <None Remove="Data\TEST.xlsx" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="Data\TEST.xlsx">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="ClosedXML" Version="0.105.0" />
-  </ItemGroup>
-
 </Project>

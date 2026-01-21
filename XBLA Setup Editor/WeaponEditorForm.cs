@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
+﻿using System.Text;
 using System.Windows.Forms;
 using XBLA_Setup_Editor.Data;
 
@@ -250,19 +247,21 @@ namespace XBLA_Setup_Editor
             if (!map.TryGetValue(key, out var code))
                 throw new KeyNotFoundException("No code mapping found for '" + key + "'.");
 
-            return code.ToString("X2", CultureInfo.InvariantCulture);
+            return $"{code:X2}";
         }
 
         private static string FormatHexBytes(string hex)
         {
-            if (string.IsNullOrWhiteSpace(hex)) return "";
-            if (hex.Length % 2 != 0) return hex;
+            if (string.IsNullOrEmpty(hex) || hex.Length % 2 != 0)
+                return hex ?? "";
 
-            var parts = new List<string>();
+            var sb = new StringBuilder(hex.Length + hex.Length / 2);
             for (int i = 0; i < hex.Length; i += 2)
-                parts.Add(hex.Substring(i, 2));
-
-            return string.Join(" ", parts);
+            {
+                if (i > 0) sb.Append(' ');
+                sb.Append(hex, i, 2);
+            }
+            return sb.ToString();
         }
 
         private void UpdateOutputLive(

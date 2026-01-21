@@ -1,6 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-
 namespace XBLA_Setup_Editor.Data
 {
     internal static class ScaleData
@@ -14,12 +11,6 @@ namespace XBLA_Setup_Editor.Data
             ("Why", 0x04),
         };
 
-        internal static Dictionary<string, int> Build()
-        {
-            var d = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            foreach (var kv in Pairs)
-                if (!d.ContainsKey(kv.Name)) d[kv.Name] = kv.Code;
-            return d;
-        }
+        internal static Dictionary<string, int> Build() => DataHelper.BuildDictionary(Pairs);
     }
 }

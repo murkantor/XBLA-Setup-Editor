@@ -1,6 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-
 namespace XBLA_Setup_Editor.Data
 {
     internal static class UnkData
