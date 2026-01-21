@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-
 namespace XBLA_Setup_Editor.Data
 {
     internal static class PropData
     {
-        internal static readonly (string Name, int Code)[] Pairs = new (string Name, int Code)[]
+        internal static readonly (string Name, int Code)[] Pairs =
         {
             ("Nothing (No Pickup)",0x60),
             ("Unarmed",0x60),
@@ -41,12 +38,6 @@ namespace XBLA_Setup_Editor.Data
             ("Gold PP7",0xE7),
         };
 
-        internal static Dictionary<string, int> Build()
-        {
-            var d = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            foreach (var kv in Pairs)
-                if (!d.ContainsKey(kv.Name)) d[kv.Name] = kv.Code;
-            return d;
-        }
+        internal static Dictionary<string, int> Build() => DataHelper.BuildDictionary(Pairs);
     }
 }

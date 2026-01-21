@@ -82,6 +82,7 @@ namespace XBLA_Setup_Editor
             "Control",
             "Caverns",
             "Cradle",
+            "Cuba",
             "Aztec",
             "Egyptian",
         };
@@ -356,6 +357,32 @@ namespace XBLA_Setup_Editor
                 }
             }
 
+            // Carve out FixedSP placements from the pool segments to prevent overlaps
+            foreach (var p in placements.Where(p => p.Region == RegionKind.FixedSP))
+            {
+                int pStart = p.FileOffset;
+                int pEnd = p.FileOffset + p.Size;
+
+                for (int i = segs.Count - 1; i >= 0; i--)
+                {
+                    var s = segs[i];
+                    if (!Overlaps(s.Start, s.EndExclusive, pStart, pEnd))
+                        continue;
+
+                    // This segment overlaps with a FixedSP placement - carve it out
+                    segs.RemoveAt(i);
+
+                    // Add back the non-overlapping portions
+                    // Left portion: before the placement
+                    if (s.Start < pStart)
+                        segs.Insert(i, new Segment(s.Start, pStart, s.Kind));
+
+                    // Right portion: after the placement
+                    if (s.EndExclusive > pEnd)
+                        segs.Add(new Segment(pEnd, s.EndExclusive, s.Kind));
+                }
+            }
+
             // Greedy allocate the rest into pool segments
             bool progress;
             do
@@ -541,8 +568,9 @@ namespace XBLA_Setup_Editor
 
         // --------------------------------------------
         // Split plan helper:
-        // - Plans XEX1 using hybrid allocator on as many as possible.
-        // - Remaining go to XEX2.
+        // - Dynamically finds the optimal split point in PriorityOrder.
+        // - XEX1 gets levels 0..splitIndex-1, XEX2 gets levels splitIndex..end.
+        // - Tries to fit as many levels as possible in XEX1 (in order).
         // --------------------------------------------
 
         public static void PlanSplitAcrossTwoXex(
@@ -560,23 +588,61 @@ namespace XBLA_Setup_Editor
             out IReadOnlyList<Placement> placementsXex2,
             out List<string> rep2)
         {
-            // XEX1: try place everything
-            placementsXex1 = PlanHybridPlacements(
-                xex: xex,
-                levelToSize: levelToSize,
-                candidateLevels: PriorityOrder, // all
-                allowMp: allowMp,
-                allowEndOfXex: allowEndOfXex,
-                endOfXexStart: endOfXexStart,
-                allowExtendXex: allowExtendXex,
-                extendChunkBytes: extendChunkBytes,
-                align: align,
-                out rep1,
-                out var notPlaced1);
+            // Filter to only levels we have sizes for
+            var allLevels = PriorityOrder.Where(l => levelToSize.ContainsKey(l) && levelToSize[l] > 0).ToList();
 
-            remainingLevels = notPlaced1;
+            // Binary search for the optimal split point: find the maximum number of levels that fit in XEX1
+            int bestSplit = 0;
+            IReadOnlyList<Placement> bestPlacements = Array.Empty<Placement>();
+            List<string> bestReport = new List<string>();
 
-            // XEX2: plan only the remainder
+            // Try increasing numbers of levels until we find where it overflows
+            for (int count = 1; count <= allLevels.Count; count++)
+            {
+                var candidateLevels = allLevels.Take(count).ToList();
+
+                var testPlacements = PlanHybridPlacements(
+                    xex: xex,
+                    levelToSize: levelToSize,
+                    candidateLevels: candidateLevels,
+                    allowMp: allowMp,
+                    allowEndOfXex: allowEndOfXex,
+                    endOfXexStart: endOfXexStart,
+                    allowExtendXex: allowExtendXex,
+                    extendChunkBytes: extendChunkBytes,
+                    align: align,
+                    out var testReport,
+                    out var notPlaced);
+
+                // If all candidates were placed, this is a valid split point
+                if (notPlaced.Count == 0)
+                {
+                    bestSplit = count;
+                    bestPlacements = testPlacements;
+                    bestReport = testReport;
+                }
+                else
+                {
+                    // We've found the overflow point - stop here
+                    break;
+                }
+            }
+
+            // XEX1 gets the first bestSplit levels
+            placementsXex1 = bestPlacements;
+            rep1 = bestReport;
+
+            // Remaining levels go to XEX2
+            remainingLevels = allLevels.Skip(bestSplit).ToList();
+
+            if (remainingLevels.Count > 0)
+            {
+                rep1.Add("");
+                rep1.Add($"=== SPLIT POINT: XEX1 contains {bestSplit} levels, XEX2 will contain {remainingLevels.Count} levels ===");
+                rep1.Add("XEX2 levels: " + string.Join(", ", remainingLevels));
+            }
+
+            // XEX2: plan the remainder
             placementsXex2 = PlanHybridPlacements(
                 xex: xex,
                 levelToSize: levelToSize,
@@ -588,7 +654,15 @@ namespace XBLA_Setup_Editor
                 extendChunkBytes: extendChunkBytes,
                 align: align,
                 out rep2,
-                out _);
+                out var notPlaced2);
+
+            if (notPlaced2.Count > 0)
+            {
+                rep2.Add("");
+                rep2.Add("WARNING: Some levels could not be placed even in XEX2:");
+                foreach (var l in notPlaced2)
+                    rep2.Add($"  {l}");
+            }
         }
     }
 }

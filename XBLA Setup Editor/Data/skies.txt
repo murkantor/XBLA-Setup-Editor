@@ -1,0 +1,1480 @@
+START OF SKY BANKS
+
+level: 0016
+near_clip: 000F
+far_fog: 0DAC
+near_fog: 07D0
+max_obj_vis: 09C4
+far_obj_obfusc_dist: 07D0
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: A1 0 FF
+sky_flag: 01
+sky_height: 1388
+unknown16: 00AA
+unknown18: 6428
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0000
+unknown20: 0000
+unknown22: 1E00
+new_fog_dist: 00001388
+new_fog_rgb: A1 0 FF
+unknown2B: 00
+far_clip_plane: 00002EE0
+near_clip_plane: 40C00000
+point_of_infinity_(unused): B8D1B717
+
+level: 0017
+near_clip: 000A
+far_fog: 2710
+near_fog: 09C4
+max_obj_vis: 1388
+far_obj_obfusc_dist: 0320
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 0 0 0
+sky_flag: 00
+sky_height: 0000
+unknown16: 0000
+unknown18: 0000
+unknown1A: 0000
+sea_height: 0000
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00002710
+new_fog_rgb: 0 0 0
+unknown2B: 00
+far_clip_plane: 00002710
+near_clip_plane: 40A00000
+point_of_infinity_(unused): B8D1B717
+
+level: 0018
+near_clip: 000A
+far_fog: 1194
+near_fog: 0DAC
+max_obj_vis: 0BB8
+far_obj_obfusc_dist: 01F4
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 0 0 0
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00001194
+new_fog_rgb: 0 0 0
+unknown2B: 00
+far_clip_plane: 000057E4
+near_clip_plane: 40200000
+point_of_infinity_(unused): B8D1B717
+
+level: 0019
+near_clip: 000A
+far_fog: 1194
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 0 0 8
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: 0000
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 1900
+new_fog_dist: 00001194
+new_fog_rgb: 0 0 8
+unknown2B: 00
+far_clip_plane: 00003A98
+near_clip_plane: 40C00000
+point_of_infinity_(unused): B8D1B717
+
+level: 007D
+near_clip: 0014
+far_fog: 3A98
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 0 0 8
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: 0000
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 1900
+new_fog_dist: 00003A98
+new_fog_rgb: 0 0 8
+unknown2B: 00
+far_clip_plane: 00003A98
+near_clip_plane: 41A00000
+point_of_infinity_(unused): B8D1B717
+
+level: 001D
+near_clip: 000A
+far_fog: 1D4C
+near_fog: 1388
+max_obj_vis: 2710
+far_obj_obfusc_dist: 03E8
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 16 24 32
+sky_flag: 01
+sky_height: 1388
+unknown16: 00E1
+unknown18: AF64
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0000
+unknown20: 0000
+unknown22: 1900
+new_fog_dist: 00001D4C
+new_fog_rgb: 16 24 32
+unknown2B: 00
+far_clip_plane: 00003A98
+near_clip_plane: 40C00000
+point_of_infinity_(unused): B8D1B717
+
+level: 001E
+near_clip: 000A
+far_fog: 0BB8
+near_fog: 0640
+max_obj_vis: 07D0
+far_obj_obfusc_dist: 0320
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 0 0 8
+sky_flag: 01
+sky_height: 1D4C
+unknown16: 0046
+unknown18: C7BA
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 1900
+new_fog_dist: 00001388
+new_fog_rgb: 0 0 8
+unknown2B: 00
+far_clip_plane: 00002710
+near_clip_plane: 40A00000
+point_of_infinity_(unused): B8D1B717
+
+level: 001F
+near_clip: 000A
+far_fog: 1388
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 40 0 0
+sky_flag: 01
+sky_height: 2710
+unknown16: 00DC
+unknown18: 0014
+unknown1A: 0000
+sea_height: 0000
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00001388
+new_fog_rgb: 40 0 0
+unknown2B: 00
+far_clip_plane: 00001388
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 0021
+near_clip: 0005
+far_fog: 3A98
+near_fog: 0D05
+max_obj_vis: 115C
+far_obj_obfusc_dist: 0258
+far_intensity: 03E3
+near_intensity: 03E8
+fog_rgb: 16 48 96
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00003A98
+new_fog_rgb: 133 173 202
+unknown2B: 00
+far_clip_plane: 000124F8
+near_clip_plane: 40C00000
+point_of_infinity_(unused): B8D1B717
+
+level: 03A5
+near_clip: 001E
+far_fog: 3A98
+near_fog: 0D05
+max_obj_vis: 115C
+far_obj_obfusc_dist: 0258
+far_intensity: 03E3
+near_intensity: 03E8
+fog_rgb: 16 48 96
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 000124F8
+new_fog_rgb: 133 173 202
+unknown2B: 00
+far_clip_plane: 000124F8
+near_clip_plane: 41F00000
+point_of_infinity_(unused): B8D1B717
+
+level: 00E9
+near_clip: 0005
+far_fog: 3A98
+near_fog: 0D05
+max_obj_vis: 115C
+far_obj_obfusc_dist: 0258
+far_intensity: 03E3
+near_intensity: 03E8
+fog_rgb: 16 48 96
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 000124F8
+new_fog_rgb: 16 48 96
+unknown2B: 00
+far_clip_plane: 000124F8
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 014D
+near_clip: 0005
+far_fog: 3A98
+near_fog: 0D05
+max_obj_vis: 115C
+far_obj_obfusc_dist: 0258
+far_intensity: 03E3
+near_intensity: 03E8
+fog_rgb: 16 48 96
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 000124F8
+new_fog_rgb: 16 48 96
+unknown2B: 00
+far_clip_plane: 000124F8
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 01B1
+near_clip: 0005
+far_fog: 3A98
+near_fog: 0D05
+max_obj_vis: 115C
+far_obj_obfusc_dist: 0258
+far_intensity: 03E3
+near_intensity: 03E8
+fog_rgb: 16 48 96
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 000124F8
+new_fog_rgb: 16 48 96
+unknown2B: 00
+far_clip_plane: 000124F8
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 0022
+near_clip: 000A
+far_fog: 1388
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03DE
+near_intensity: 03E8
+fog_rgb: 16 32 16
+sky_flag: 00
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00001388
+new_fog_rgb: 16 32 1
+unknown2B: 00
+far_clip_plane: 00001388
+near_clip_plane: 40C00000
+point_of_infinity_(unused): B8D1B717
+
+level: 0086
+near_clip: 000A
+far_fog: 03E8
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03DE
+near_intensity: 03E8
+fog_rgb: 64 128 64
+sky_flag: 00
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: 0000
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 000003E8
+new_fog_rgb: 64 128 64
+unknown2B: 00
+far_clip_plane: 000003E8
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 0023
+near_clip: 000A
+far_fog: 3A98
+near_fog: 1770
+max_obj_vis: 1F40
+far_obj_obfusc_dist: 0320
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 16 48 64
+sky_flag: 01
+sky_height: 1388
+unknown16: 0019
+unknown18: 1919
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 0000D6D8
+new_fog_rgb: 133 173 202
+unknown2B: 00
+far_clip_plane: 000124F8
+near_clip_plane: 40C00000
+point_of_infinity_(unused): B8D1B717
+
+level: 00EB
+near_clip: 000A
+far_fog: 3A98
+near_fog: 1770
+max_obj_vis: 1F40
+far_obj_obfusc_dist: 0320
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 16 48 64
+sky_flag: 01
+sky_height: 1388
+unknown16: 0019
+unknown18: 1919
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00003A98
+new_fog_rgb: 16 48 64
+unknown2B: 00
+far_clip_plane: 00007530
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 014F
+near_clip: 000A
+far_fog: 3A98
+near_fog: 1770
+max_obj_vis: 1F40
+far_obj_obfusc_dist: 0320
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 16 48 64
+sky_flag: 01
+sky_height: 1388
+unknown16: 0019
+unknown18: 1919
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00003A98
+new_fog_rgb: 16 48 64
+unknown2B: 00
+far_clip_plane: 00007530
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 01B3
+near_clip: 000A
+far_fog: 3A98
+near_fog: 1770
+max_obj_vis: 1F40
+far_obj_obfusc_dist: 0320
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 16 48 64
+sky_flag: 01
+sky_height: 1388
+unknown16: 0019
+unknown18: 1919
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00003A98
+new_fog_rgb: 16 48 64
+unknown2B: 00
+far_clip_plane: 00007530
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 0024
+near_clip: 0002
+far_fog: 09C4
+near_fog: 115C
+max_obj_vis: 15B3
+far_obj_obfusc_dist: 0320
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 96 96 128
+sky_flag: 01
+sky_height: 2710
+unknown16: 00F0
+unknown18: 781E
+unknown1A: 0000
+sea_height: 0000
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 0700
+new_fog_dist: 0000AFC8
+new_fog_rgb: 164 150 130
+unknown2B: 00
+far_clip_plane: 000186A0
+near_clip_plane: 40000000
+point_of_infinity_(unused): B8D1B717
+
+level: 0025
+near_clip: 000A
+far_fog: 157C
+near_fog: 05DC
+max_obj_vis: 1964
+far_obj_obfusc_dist: 03E8
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 121 124 121
+sky_flag: 00
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: 0000
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00001194
+new_fog_rgb: 121 124 121
+unknown2B: 00
+far_clip_plane: 00001388
+near_clip_plane: 40C00000
+point_of_infinity_(unused): B8D1B717
+
+level: 0026
+near_clip: 000A
+far_fog: 57E4
+near_fog: 0BB8
+max_obj_vis: 0FA0
+far_obj_obfusc_dist: 0258
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 16 48 96
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: EC78
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 000057E4
+new_fog_rgb: 16 48 96
+unknown2B: 00
+far_clip_plane: 000057E4
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 0027
+near_clip: 000A
+far_fog: 1770
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03E1
+near_intensity: 03E8
+fog_rgb: 8 0 8
+sky_flag: 00
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: F448
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 0000
+new_fog_dist: 00001770
+new_fog_rgb: 8 0 8
+unknown2B: 00
+far_clip_plane: 00001770
+near_clip_plane: 40A00000
+point_of_infinity_(unused): B8D1B717
+
+level: 0029
+near_clip: 000A
+far_fog: 251C
+near_fog: 0D05
+max_obj_vis: 115C
+far_obj_obfusc_dist: 0320
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 96 128 160
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FF00
+unknown1A: 0000
+sea_height: D8F0
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 0000
+new_fog_dist: 00007530
+new_fog_rgb: 110 129 150
+unknown2B: 00
+far_clip_plane: 000088B8
+near_clip_plane: 40C00000
+point_of_infinity_(unused): B8D1B717
+
+level: 002B
+near_clip: 0002
+far_fog: 07D0
+near_fog: 09C4
+max_obj_vis: 0BEF
+far_obj_obfusc_dist: 02EE
+far_intensity: 03BD
+near_intensity: 03E8
+fog_rgb: 32 16 16
+sky_flag: 01
+sky_height: 1388
+unknown16: 003A
+unknown18: 1100
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 1400
+new_fog_dist: 00001964
+new_fog_rgb: 32 16 16
+unknown2B: 00
+far_clip_plane: 000186A0
+near_clip_plane: 40000000
+point_of_infinity_(unused): B8D1B717
+
+level: 03AF
+near_clip: 0002
+far_fog: 1F40
+near_fog: 1770
+max_obj_vis: 1F40
+far_obj_obfusc_dist: 0320
+far_intensity: 03DF
+near_intensity: 03E8
+fog_rgb: 32 16 16
+sky_flag: 01
+sky_height: 1388
+unknown16: 003A
+unknown18: 1100
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 0000
+new_fog_dist: 00009C40
+new_fog_rgb: 32 16 16
+unknown2B: 00
+far_clip_plane: 000186A0
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 001B
+near_clip: 000A
+far_fog: 2710
+near_fog: 03E8
+max_obj_vis: 3A98
+far_obj_obfusc_dist: 02EE
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 16 0 0
+sky_flag: 01
+sky_height: 1388
+unknown16: 003A
+unknown18: 1100
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 0000
+new_fog_dist: 00002710
+new_fog_rgb: 16 0 0
+unknown2B: 00
+far_clip_plane: 00002710
+near_clip_plane: 40C00000
+point_of_infinity_(unused): B8D1B717
+
+level: 00D1
+near_clip: 000A
+far_fog: 09C4
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 128 120 112
+sky_flag: 00
+sky_height: 0000
+unknown16: 0082
+unknown18: 786E
+unknown1A: 0000
+sea_height: 0000
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 000009C4
+new_fog_rgb: 128 120 112
+unknown2B: 00
+far_clip_plane: 000009C4
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 0135
+near_clip: 000A
+far_fog: 07D0
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 128 120 112
+sky_flag: 00
+sky_height: 0000
+unknown16: 0082
+unknown18: 786E
+unknown1A: 0000
+sea_height: 0000
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 000007D0
+new_fog_rgb: 128 120 112
+unknown2B: 00
+far_clip_plane: 000007D0
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 0199
+near_clip: 000A
+far_fog: 05DC
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 128 120 112
+sky_flag: 00
+sky_height: 0000
+unknown16: 0082
+unknown18: 786E
+unknown1A: 0000
+sea_height: 0000
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 000005DC
+new_fog_rgb: 128 120 112
+unknown2B: 00
+far_clip_plane: 000005DC
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 00F1
+near_clip: 000A
+far_fog: 1B58
+near_fog: 0D05
+max_obj_vis: 115C
+far_obj_obfusc_dist: 0320
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 96 128 160
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FF00
+unknown1A: 0000
+sea_height: D8F0
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 0000
+new_fog_dist: 00001B58
+new_fog_rgb: 110 129 150
+unknown2B: 00
+far_clip_plane: 00001B58
+near_clip_plane: 40C00000
+point_of_infinity_(unused): B8D1B717
+
+level: 0155
+near_clip: 000A
+far_fog: 157C
+near_fog: 0D05
+max_obj_vis: 115C
+far_obj_obfusc_dist: 0320
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 96 128 160
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FF00
+unknown1A: 0000
+sea_height: D8F0
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 0000
+new_fog_dist: 0000157C
+new_fog_rgb: 110 129 150
+unknown2B: 00
+far_clip_plane: 0000157C
+near_clip_plane: 40C00000
+point_of_infinity_(unused): B8D1B717
+
+level: 01B9
+near_clip: 000A
+far_fog: 0FA0
+near_fog: 0D05
+max_obj_vis: 115C
+far_obj_obfusc_dist: 0320
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 96 128 160
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FF00
+unknown1A: 0000
+sea_height: D8F0
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 0000
+new_fog_dist: 00000FA0
+new_fog_rgb: 110 129 150
+unknown2B: 00
+far_clip_plane: 00000FA0
+near_clip_plane: 40C00000
+point_of_infinity_(unused): B8D1B717
+
+level: 00EE
+near_clip: 000A
+far_fog: 57E4
+near_fog: 0BB8
+max_obj_vis: 0FA0
+far_obj_obfusc_dist: 0258
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 16 48 96
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: EC78
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 000057E4
+new_fog_rgb: 16 48 96
+unknown2B: 00
+far_clip_plane: 000057E4
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 0152
+near_clip: 000A
+far_fog: 57E4
+near_fog: 0BB8
+max_obj_vis: 0FA0
+far_obj_obfusc_dist: 0258
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 16 48 96
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: EC78
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 000057E4
+new_fog_rgb: 16 48 96
+unknown2B: 00
+far_clip_plane: 000057E4
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 01B6
+near_clip: 000A
+far_fog: 57E4
+near_fog: 0BB8
+max_obj_vis: 0FA0
+far_obj_obfusc_dist: 0258
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 16 48 96
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: EC78
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 000057E4
+new_fog_rgb: 16 48 96
+unknown2B: 00
+far_clip_plane: 000057E4
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 00EF
+near_clip: 000A
+far_fog: 1D4C
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03E1
+near_intensity: 03E8
+fog_rgb: 8 0 8
+sky_flag: 00
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: F448
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 0000
+new_fog_dist: 00001D4C
+new_fog_rgb: 8 0 8
+unknown2B: 00
+far_clip_plane: 00001D4C
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 0153
+near_clip: 000A
+far_fog: 1770
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03E1
+near_intensity: 03E8
+fog_rgb: 8 0 8
+sky_flag: 00
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: F448
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 0000
+new_fog_dist: 00001770
+new_fog_rgb: 8 0 8
+unknown2B: 00
+far_clip_plane: 00001770
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 01B7
+near_clip: 000A
+far_fog: 1388
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03E1
+near_intensity: 03E8
+fog_rgb: 8 0 8
+sky_flag: 00
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: F448
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 0000
+new_fog_dist: 00001388
+new_fog_rgb: 8 0 8
+unknown2B: 00
+far_clip_plane: 00001388
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 00C8
+near_clip: 000A
+far_fog: 1D4C
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 0 0 0
+sky_flag: 00
+sky_height: 0000
+unknown16: 0000
+unknown18: 0000
+unknown1A: 0000
+sea_height: 0000
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00001D4C
+new_fog_rgb: 0 0 0
+unknown2B: 00
+far_clip_plane: 00001D4C
+near_clip_plane: 40200000
+point_of_infinity_(unused): B8D1B717
+
+level: 012C
+near_clip: 000A
+far_fog: 1770
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 0 0 0
+sky_flag: 00
+sky_height: 0000
+unknown16: 0000
+unknown18: 0000
+unknown1A: 0000
+sea_height: 0000
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00001D4C
+new_fog_rgb: 0 0 0
+unknown2B: 00
+far_clip_plane: 00001D4C
+near_clip_plane: 40200000
+point_of_infinity_(unused): B8D1B717
+
+level: 0190
+near_clip: 000A
+far_fog: 1388
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 0 0 0
+sky_flag: 00
+sky_height: 0000
+unknown16: 0000
+unknown18: 0000
+unknown1A: 0000
+sea_height: 0000
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00001D4C
+new_fog_rgb: 0 0 0
+unknown2B: 00
+far_clip_plane: 00001D4C
+near_clip_plane: 40200000
+point_of_infinity_(unused): B8D1B717
+
+level: 0036
+near_clip: 000A
+far_fog: 1770
+near_fog: 05DC
+max_obj_vis: 1770
+far_obj_obfusc_dist: 03E8
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 48 64 16
+sky_flag: 00
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: 0000
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00001770
+new_fog_rgb: 48 64 16
+unknown2B: 00
+far_clip_plane: 00001770
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 0009
+near_clip: 000A
+far_fog: 3A98
+near_fog: 03E8
+max_obj_vis: 4E20
+far_obj_obfusc_dist: 02EE
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 96 96 128
+sky_flag: 01
+sky_height: 2710
+unknown16: 00F0
+unknown18: 781E
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 0700
+new_fog_dist: 0000AFC8
+new_fog_rgb: 164 150 130
+unknown2B: 00
+far_clip_plane: 0000AFC8
+near_clip_plane: 40000000
+point_of_infinity_(unused): B8D1B717
+
+level: 0014
+near_clip: 000A
+far_fog: 2710
+near_fog: 03E8
+max_obj_vis: 3A98
+far_obj_obfusc_dist: 02EE
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 24 24 24
+sky_flag: 01
+sky_height: 2710
+unknown16: 0006
+unknown18: 1B55
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 0000
+new_fog_dist: 00002710
+new_fog_rgb: 24 24 24
+unknown2B: 00
+far_clip_plane: 00002710
+near_clip_plane: 40000000
+point_of_infinity_(unused): B8D1B717
+
+level: 01B8
+near_clip: 000A
+far_fog: 4E20
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 24 80 56
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: 6C00
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0100
+unknown20: FFFF
+unknown22: 0000
+new_fog_dist: 00004E20
+new_fog_rgb: 24 80 56
+unknown2B: 00
+far_clip_plane: 00004E20
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 00E7
+near_clip: 000A
+far_fog: 1388
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 40 0 0
+sky_flag: 01
+sky_height: 2710
+unknown16: 00DC
+unknown18: 0014
+unknown1A: 0000
+sea_height: 0000
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00001388
+new_fog_rgb: 40 0 0
+unknown2B: 00
+far_clip_plane: 00001388
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 014B
+near_clip: 000A
+far_fog: 1388
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 40 0 0
+sky_flag: 01
+sky_height: 2710
+unknown16: 00DC
+unknown18: 0014
+unknown1A: 0000
+sea_height: 0000
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00001388
+new_fog_rgb: 40 0 0
+unknown2B: 00
+far_clip_plane: 00001388
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 01AF
+near_clip: 000A
+far_fog: 1388
+near_fog: 0000
+max_obj_vis: 0000
+far_obj_obfusc_dist: 0000
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 40 0 0
+sky_flag: 01
+sky_height: 2710
+unknown16: 00DC
+unknown18: 0014
+unknown1A: 0000
+sea_height: 0000
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00001388
+new_fog_rgb: 40 0 0
+unknown2B: 00
+far_clip_plane: 00001388
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 001C
+near_clip: 000A
+far_fog: 3A98
+near_fog: 0BB8
+max_obj_vis: 0FA0
+far_obj_obfusc_dist: 0258
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 0 0 0
+sky_flag: 01
+sky_height: 1D4C
+unknown16: 0053
+unknown18: 4841
+unknown1A: 0000
+sea_height: EC78
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00003A98
+new_fog_rgb: 0 0 0
+unknown2B: 00
+far_clip_plane: 00003A98
+near_clip_plane: 40A00000
+point_of_infinity_(unused): B8D1B717
+
+level: 0080
+near_clip: 001E
+far_fog: 3A98
+near_fog: 0BB8
+max_obj_vis: 0FA0
+far_obj_obfusc_dist: 0258
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 0 0 0
+sky_flag: 01
+sky_height: 1D4C
+unknown16: 0053
+unknown18: 4841
+unknown1A: 0000
+sea_height: EC78
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00003A98
+new_fog_rgb: 0 0 0
+unknown2B: 00
+far_clip_plane: 00003A98
+near_clip_plane: 40A00000
+point_of_infinity_(unused): B8D1B717
+
+level: 0020
+near_clip: 000A
+far_fog: 4E20
+near_fog: 0BB8
+max_obj_vis: 0FA0
+far_obj_obfusc_dist: 0258
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 16 48 96
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: EC78
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00004E20
+new_fog_rgb: 16 48 96
+unknown2B: 00
+far_clip_plane: 00004E20
+near_clip_plane: 40C00000
+point_of_infinity_(unused): B8D1B717
+
+level: 0084
+near_clip: 000A
+far_fog: 2710
+near_fog: 0BB8
+max_obj_vis: 0FA0
+far_obj_obfusc_dist: 0258
+far_intensity: 03CC
+near_intensity: 03E8
+fog_rgb: 0 0 0
+sky_flag: 01
+sky_height: 1D4C
+unknown16: 0053
+unknown18: 0A0A
+unknown1A: 0000
+sea_height: EC78
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00002710
+new_fog_rgb: 0 0 0
+unknown2B: 00
+far_clip_plane: 00002710
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 00E8
+near_clip: 000A
+far_fog: 4E20
+near_fog: 0BB8
+max_obj_vis: 0FA0
+far_obj_obfusc_dist: 0258
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 16 48 96
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: EC78
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00004E20
+new_fog_rgb: 16 48 96
+unknown2B: 00
+far_clip_plane: 00004E20
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 014C
+near_clip: 000A
+far_fog: 4E20
+near_fog: 0BB8
+max_obj_vis: 0FA0
+far_obj_obfusc_dist: 0258
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 16 48 96
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: EC78
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00004E20
+new_fog_rgb: 16 48 96
+unknown2B: 00
+far_clip_plane: 00004E20
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 01B0
+near_clip: 000A
+far_fog: 4E20
+near_fog: 0BB8
+max_obj_vis: 0FA0
+far_obj_obfusc_dist: 0258
+far_intensity: 03E4
+near_intensity: 03E8
+fog_rgb: 16 48 96
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: EC78
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00004E20
+new_fog_rgb: 16 48 96
+unknown2B: 00
+far_clip_plane: 00004E20
+near_clip_plane: 41200000
+point_of_infinity_(unused): B8D1B717
+
+level: 005A
+near_clip: 0005
+far_fog: 3A98
+near_fog: 0D05
+max_obj_vis: 115C
+far_obj_obfusc_dist: 0258
+far_intensity: 03E3
+near_intensity: 03E8
+fog_rgb: 0 0 0
+sky_flag: 01
+sky_height: 1388
+unknown16: 00FF
+unknown18: FFFF
+unknown1A: 0000
+sea_height: FC18
+unknown1E: 0000
+unknown20: 0000
+unknown22: 0000
+new_fog_dist: 00003A98
+new_fog_rgb: 0 0 0
+unknown2B: 00
+far_clip_plane: 00003A98
+near_clip_plane: 40A00000
+point_of_infinity_(unused): B8D1B717
+
+END OF SKY BANKS
+
+START OF SMALL SKY BANKS
+
+level: FFFFFFFF
+fog_rgb: 0 16 64
+sky_flag: 00
+sky_height: 459C4000
+unknown0C: 00000000
+cloud_r: 437F0000
+cloud_g: 437F0000
+cloud_b: 437F0000
+sea_flag: 00000000
+sea_height: 00000000
+sea_image: 00000000
+sea_r: 00000000
+sea_g: 00000000
+sea_b: 00000000
+unknown34: 00000000
+
+level: 0000001A
+fog_rgb: 16 48 96
+sky_flag: 01
+sky_height: 453B8000
+unknown0C: 00000000
+cloud_r: 43660000
+cloud_g: 43660000
+cloud_b: 43660000
+sea_flag: 01000000
+sea_height: C37D0000
+sea_image: 00020000
+sea_r: 437F0000
+sea_g: 437F0000
+sea_b: 43160000
+unknown34: 00000000
+
+level: 00000037
+fog_rgb: 48 64 16
+sky_flag: 00
+sky_height: 459C4000
+unknown0C: 00000000
+cloud_r: 437F0000
+cloud_g: 437F0000
+cloud_b: 437F0000
+sea_flag: 00000000
+sea_height: 00000000
+sea_image: 00000000
+sea_r: 00000000
+sea_g: 00000000
+sea_b: 00000000
+unknown34: 00000000
+
+END OF SKY BANKS
