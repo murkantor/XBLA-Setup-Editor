@@ -16,8 +16,8 @@ namespace XBLA_Setup_Editor
         private readonly Button _btnApplyPatches;
         private readonly CheckBox _chkBackupXex;
         private readonly CheckBox _chkApplySkyData;
-        private readonly CheckBox _chkCloudToFog;
-        private readonly CheckBox _chkApplyFogRatios;
+        private readonly CheckBox _chkSkyToFog;
+        private readonly CheckBox _chkApplyN64FogDistances;
         private readonly ListView _lvSkyEntries;
         private readonly ListView _lvPatchRecords;
 
@@ -73,16 +73,16 @@ namespace XBLA_Setup_Editor
                 AutoSize = true
             };
 
-            _chkCloudToFog = new CheckBox
+            _chkSkyToFog = new CheckBox
             {
-                Text = "Cloud colour → Fog colour",
+                Text = "N64 Sky colour → Fog colour",
                 Checked = true,
                 AutoSize = true
             };
 
-            _chkApplyFogRatios = new CheckBox
+            _chkApplyN64FogDistances = new CheckBox
             {
-                Text = "Apply XBLA fog ratios",
+                Text = "Apply N64 fog distances",
                 Checked = true,
                 AutoSize = true
             };
@@ -167,8 +167,8 @@ namespace XBLA_Setup_Editor
             var optionsPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
             optionsPanel.Controls.Add(_chkBackupXex);
             optionsPanel.Controls.Add(_chkApplySkyData);
-            optionsPanel.Controls.Add(_chkCloudToFog);
-            optionsPanel.Controls.Add(_chkApplyFogRatios);
+            optionsPanel.Controls.Add(_chkSkyToFog);
+            optionsPanel.Controls.Add(_chkApplyN64FogDistances);
             mainLayout.Controls.Add(optionsPanel, 0, row);
             mainLayout.SetColumnSpan(optionsPanel, 3);
             mainLayout.Controls.Add(_btnApplyPatches, 3, row);
@@ -412,7 +412,7 @@ namespace XBLA_Setup_Editor
                 {
                     Log("");
                     var skyLog = new List<string>();
-                    int skyPatched = _parser.ApplySkyData(patchedXex, skyLog, _chkCloudToFog.Checked, _chkApplyFogRatios.Checked);
+                    int skyPatched = _parser.ApplySkyData(patchedXex, skyLog, _chkSkyToFog.Checked, _chkApplyN64FogDistances.Checked);
                     foreach (var line in skyLog)
                         Log(line);
                     totalPatched += skyPatched;

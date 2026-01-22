@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using XBLA_Setup_Editor.Data;
 
 namespace XBLA_Setup_Editor
 {
@@ -259,8 +260,6 @@ namespace XBLA_Setup_Editor
             IReadOnlyDictionary<string, int> levelToSize,
             IEnumerable<string> candidateLevels,
             bool allowMp,
-            bool allowEndOfXex,
-            int endOfXexStart,
             bool allowExtendXex,
             int extendChunkBytes,
             int align,
@@ -273,8 +272,26 @@ namespace XBLA_Setup_Editor
             reportLines.Add("=== XEX PATCH (HYBRID PLAN) ===");
             reportLines.Add($"Align          : 0x{align:X}");
             reportLines.Add($"Allow MP pool  : {(allowMp ? "YES" : "no")}");
-            reportLines.Add($"Allow EndOfXex : {(allowEndOfXex ? $"YES (scan zeros from 0x{endOfXexStart:X})" : "no")}");
             reportLines.Add($"Allow Extend   : {(allowExtendXex ? $"YES (chunk 0x{extendChunkBytes:X})" : "no")}");
+
+            // Get extension info if allowed - this determines proper VA for extended data
+            uint extensionBaseVa = 0;
+            int extensionBaseFileOffset = xex.Length;
+            if (allowExtendXex)
+            {
+                var analysis = XexExtender.Analyze(xex);
+                if (analysis.IsValid)
+                {
+                    extensionBaseVa = analysis.EndMemoryAddress;
+                    extensionBaseFileOffset = xex.Length;
+                    reportLines.Add($"Extension base : VA 0x{extensionBaseVa:X8} at file offset 0x{extensionBaseFileOffset:X}");
+                }
+                else
+                {
+                    reportLines.Add($"Extension UNAVAILABLE: {analysis.Error}");
+                    allowExtendXex = false;
+                }
+            }
             reportLines.Add("");
 
             // Build per-level fixed caps (original region until next header, except Train -> MP start)
@@ -296,14 +313,6 @@ namespace XBLA_Setup_Editor
                 int mpEnd = SetupBlocksEndExclusive;
                 if (mpEnd > mpStart)
                     segs.Add(new Segment(mpStart, mpEnd, RegionKind.MpPool));
-            }
-
-            // End-of-xex zero segments
-            if (allowEndOfXex)
-            {
-                const int minRun = 0x200; // ignore tiny holes
-                var zeroSegs = FindZeroSegments(xex, endOfXexStart, minRun, RegionKind.EndOfXex);
-                segs.AddRange(zeroSegs);
             }
 
             // Greedy plan:
@@ -415,7 +424,18 @@ namespace XBLA_Setup_Editor
                         }
                     }
 
-                    uint vaNew = FileOffsetToVa(off);
+                    // Calculate VA - for extended regions, use the proper extension base VA
+                    uint vaNew;
+                    if (kind == RegionKind.ExtendedXex && extensionBaseVa != 0)
+                    {
+                        // VA = extensionBaseVa + (fileOffset - extensionBaseFileOffset)
+                        vaNew = extensionBaseVa + (uint)(off - extensionBaseFileOffset);
+                    }
+                    else
+                    {
+                        vaNew = FileOffsetToVa(off);
+                    }
+
                     bool repack = (vaNew != GetOriginalVa(level));
 
                     placements.Add(new Placement(level, off, vaNew, size, kind, repack));
@@ -470,6 +490,7 @@ namespace XBLA_Setup_Editor
         // APPLY (Hybrid)
         //
         // - Can extend the XEX file if placements include RegionKind.ExtendedXex.
+        // - Properly updates XEX headers when extending.
         // - Writes blobs + patches SP pointers.
         // --------------------------------------------
 
@@ -491,18 +512,42 @@ namespace XBLA_Setup_Editor
                 if (end > requiredLen) requiredLen = end;
             }
 
-            if (requiredLen > xex.Length)
+            // Track if we need to extend and by how much
+            int extensionSize = requiredLen - xex.Length;
+            bool needsExtension = extensionSize > 0;
+            uint extensionBaseAddress = 0;
+
+            if (needsExtension)
             {
                 if (!allowExtendXex)
                     throw new InvalidOperationException($"Plan requires extending XEX to 0x{requiredLen:X}, but extend option is disabled.");
 
-                Array.Resize(ref xex, requiredLen);
-                // new bytes are zero-initialized by Array.Resize
+                // Use XexExtender to properly extend the XEX with header updates
+                var analysis = XexExtender.Analyze(xex);
+                if (!analysis.IsValid)
+                    throw new InvalidOperationException($"Cannot extend XEX: {analysis.Error}");
+
+                extensionBaseAddress = analysis.EndMemoryAddress;
+
+                // Create the extension data (zeros for now, will be filled with setup data)
+                byte[] extensionData = new byte[extensionSize];
+
+                var (extendedXex, extResult) = XexExtender.Extend(xex, extensionData, recalculateSha1: false);
+                if (!extResult.Success)
+                    throw new InvalidOperationException($"Failed to extend XEX: {extResult.Error}");
+
+                xex = extendedXex;
             }
 
             var patched = new List<string>();
             var skipped = new List<string>();
             var warnings = new List<string>();
+
+            if (needsExtension)
+            {
+                patched.Add($"EXTENDED XEX by {extensionSize:N0} bytes (new data at VA 0x{extensionBaseAddress:X8})");
+                patched.Add("");
+            }
 
             foreach (var p in placements)
             {
@@ -548,8 +593,8 @@ namespace XBLA_Setup_Editor
             {
                 "",
                 "=== XEX PATCH (HYBRID APPLY) ===",
-                $"Input : {Path.GetFileName(inputXexPath)} ({xex.Length} bytes)",
-                $"Output: {Path.GetFileName(outputXexPath)} ({new FileInfo(outputXexPath).Length} bytes)",
+                $"Input : {Path.GetFileName(inputXexPath)} ({File.ReadAllBytes(inputXexPath).Length:N0} bytes)",
+                $"Output: {Path.GetFileName(outputXexPath)} ({xex.Length:N0} bytes)",
                 "",
                 "PATCHED:"
             };
@@ -577,8 +622,6 @@ namespace XBLA_Setup_Editor
             byte[] xex,
             IReadOnlyDictionary<string, int> levelToSize,
             bool allowMp,
-            bool allowEndOfXex,
-            int endOfXexStart,
             bool allowExtendXex,
             int extendChunkBytes,
             int align,
@@ -606,8 +649,6 @@ namespace XBLA_Setup_Editor
                     levelToSize: levelToSize,
                     candidateLevels: candidateLevels,
                     allowMp: allowMp,
-                    allowEndOfXex: allowEndOfXex,
-                    endOfXexStart: endOfXexStart,
                     allowExtendXex: allowExtendXex,
                     extendChunkBytes: extendChunkBytes,
                     align: align,
@@ -648,8 +689,6 @@ namespace XBLA_Setup_Editor
                 levelToSize: levelToSize,
                 candidateLevels: remainingLevels,
                 allowMp: allowMp,
-                allowEndOfXex: allowEndOfXex,
-                endOfXexStart: endOfXexStart,
                 allowExtendXex: allowExtendXex,
                 extendChunkBytes: extendChunkBytes,
                 align: align,

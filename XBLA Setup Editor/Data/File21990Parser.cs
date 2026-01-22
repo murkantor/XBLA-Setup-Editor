@@ -35,58 +35,40 @@ namespace XBLA_Setup_Editor
         public const byte PATCH_TYPE_09 = 0x09;
         public const byte PATCH_TYPE_0D = 0x0D;
 
-        // XBLA Fog Ratio Table - Generated from vanilla 021990.bin vs defaultCE.xex
-        // Usage: xex_fog = (ushort)(n64_fog * ratio)
-        // This preserves the XBLA fog adjustments when importing modded N64 values
+        // XBLA Fog Ratio Table - Using correct XBLA level IDs
+        // Usage: xbla_fog_new = xbla_fog / ratio (applied to Unk24/Unk2C fields at 0x24/0x2C)
+        // Dividing XBLA fog by ratio makes it thicker (lower distance = closer fog)
         private static readonly Dictionary<uint, (float FarRatio, float NearRatio)> XblaFogRatios = new()
         {
-            { 0x0016, (1.000000f, 1.000000f) }, // Dam
-            { 0x0017, (1.000000f, 1.000000f) }, // Facility
-            { 0x0018, (1.500000f, 1.750000f) }, // Runway
-            { 0x0019, (3.000000f, 1.000000f) }, // Surface 1
-            { 0x007D, (1.000000f, 1.000000f) }, // Surface 1 (alt)
-            { 0x001D, (1.000000f, 1.000000f) }, // Bunker 1
-            { 0x001E, (1.000000f, 1.000000f) }, // Silo
-            { 0x001F, (1.000000f, 1.000000f) }, // Frigate
-            { 0x0021, (1.000000f, 1.000000f) }, // Surface 2
-            { 0x03A5, (1.000000f, 1.000000f) }, // Surface 2 (alt)
-            { 0x0022, (3.000000f, 1.000000f) }, // Bunker 2
-            { 0x0086, (15.000000f, 1.000000f) }, // Bunker 2 (alt)
-            { 0x0023, (1.000000f, 0.555500f) }, // Statue
-            { 0x0024, (2.000000f, 0.000000f) }, // Archives
-            { 0x0025, (0.400000f, 0.000000f) }, // Streets
-            { 0x0026, (2.500000f, 1.000000f) }, // Depot
-            { 0x0027, (2.500000f, 1.000000f) }, // Train
-            { 0x0029, (1.578947f, 1.800180f) }, // Jungle
-            { 0x002B, (7.500000f, 2.400000f) }, // Control
-            { 0x03AF, (0.312500f, 0.740667f) }, // Caverns
-            { 0x001B, (0.550000f, 1.500000f) }, // Cradle
-            { 0x00D1, (9.000000f, 1.000000f) }, // Aztec (alt 1)
-            { 0x0135, (3.000000f, 1.000000f) }, // Aztec (alt 2)
-            { 0x0199, (6.333333f, 1.000000f) }, // Aztec (alt 3)
-            { 0x00F1, (0.285714f, 0.750075f) }, // Egyptian (alt 1)
-            { 0x0155, (1.454545f, 1.800180f) }, // Egyptian (alt 2)
-            { 0x01B9, (2.500000f, 0.300030f) }, // Egyptian (alt 3)
-            { 0x00EE, (0.416667f, 1.000000f) }, // MP Temple
-            { 0x0152, (0.333333f, 1.000000f) }, // MP Complex
-            { 0x01B6, (0.250000f, 1.000000f) }, // MP Caves
-            { 0x00EF, (0.933333f, 1.000000f) }, // MP Library
-            { 0x0153, (0.916667f, 1.000000f) }, // MP Basement
-            { 0x01B7, (0.800000f, 1.000000f) }, // MP Stack
-            { 0x00C8, (3.000000f, 1.000000f) }, // MP Facility
-            { 0x012C, (3.750000f, 1.000000f) }, // MP Bunker
-            { 0x0190, (4.500000f, 1.000000f) }, // MP Archives
-            { 0x0028, (0.375000f, 1.000000f) }, // Aztec
-            { 0x00F0, (0.300000f, 1.000000f) }, // Egyptian
-            { 0x0154, (0.250000f, 1.000000f) }, // MP Caverns
-            { 0x01B8, (0.375000f, 1.000000f) }, // MP Citadel
-            { 0x00E7, (1.200000f, 1.000000f) }, // MP Temple (alt)
-            { 0x014B, (1.000000f, 1.000000f) }, // MP Complex (alt)
-            { 0x01AF, (1.200000f, 1.000000f) }, // MP Caves (alt)
-            { 0x001C, (1.000000f, 0.333333f) }, // Bunker 2 (C)
-            { 0x0080, (0.666667f, 0.333333f) }, // Statue (alt)
-            { 0x0020, (1.000000f, 0.000000f) }, // Archives (alt)
-            { 0x0084, (0.500000f, 0.000000f) }, // Streets (alt)
+            // Single Player levels (XBLA level IDs)
+            { 0x09, (1.0f, 1.0f) },   // Bunker I
+            { 0x14, (1.0f, 1.0f) },   // Silo
+            { 0x16, (1.0f, 1.0f) },   // Statue
+            { 0x17, (3.0f, 3.0f) },   // Control
+            { 0x18, (2.0f, 2.0f) },   // Archives
+            { 0x19, (2.5f, 2.5f) },   // Train
+            { 0x1A, (1.0f, 1.0f) },   // Frigate
+            { 0x1B, (3.0f, 3.0f) },   // Bunker II
+            { 0x1C, (1.0f, 1.0f) },   // Aztec
+            { 0x1D, (1.0f, 1.0f) },   // Streets
+            { 0x1E, (2.5f, 2.5f) },   // Depot
+            { 0x1F, (1.0f, 1.0f) },   // Complex
+            { 0x20, (1.0f, 1.0f) },   // Egypt
+            { 0x21, (1.0f, 1.0f) },   // Dam
+            { 0x22, (1.0f, 1.0f) },   // Facility
+            { 0x23, (1.5f, 1.75f) },  // Runway
+            { 0x24, (3.0f, 3.0f) },   // Surface I
+            { 0x25, (1.5f, 1.8f) },   // Jungle
+            { 0x26, (1.0f, 1.0f) },   // Temple
+            { 0x27, (1.0f, 1.0f) },   // Caverns
+            { 0x28, (1.0f, 1.0f) },   // Citadel
+            { 0x29, (1.0f, 1.5f) },   // Cradle
+            { 0x2B, (3.0f, 3.0f) },   // Surface II
+            { 0x2D, (1.0f, 1.0f) },   // Basement
+            { 0x2E, (1.0f, 1.0f) },   // Stack
+            { 0x30, (1.0f, 1.0f) },   // Library
+            { 0x32, (1.0f, 1.0f) },   // Caves
+            { 0x36, (1.5f, 1.8f) },   // Cuba (Credits)
         };
 
         /// <summary>
@@ -109,13 +91,13 @@ namespace XBLA_Setup_Editor
             public float IntensityDiff { get; set; }
             public float FarIntensity { get; set; }
             public float NearIntensity { get; set; }
-            
+
             // 0x28-0x2B: Sky Colour (was incorrectly labeled as image offsets)
             public byte SkyColourRed { get; set; }
             public byte SkyColourGreen { get; set; }
             public byte SkyColourBlue { get; set; }
             public byte SkyColourFlag { get; set; }  // Often 0x01
-            
+
             public float CloudHeight { get; set; }
             public uint Unk1 { get; set; }
             public float CloudsRed { get; set; }
@@ -311,9 +293,10 @@ namespace XBLA_Setup_Editor
         /// </summary>
         /// <param name="src">Source 21990 entry</param>
         /// <param name="existingXex">Existing XEX entry to preserve unknown fields (optional)</param>
-        /// <param name="cloudColourToFog">If true, copies cloud colour to the XEX fog colour fields</param>
-        /// <param name="applyFogRatios">If true, applies XBLA fog ratios to preserve HD adjustments</param>
-        public static SkyEntryXex ConvertToXexFormat(SkyEntry21990 src, SkyEntryXex? existingXex = null, bool cloudColourToFog = false, bool applyFogRatios = true)
+        /// <param name="skyColourToFog">If true, copies N64 sky colour to the XEX fog colour fields</param>
+        /// <param name="applyN64FogDistances">If true, applies fog ratios to make XBLA fog thicker</param>
+        public static SkyEntryXex ConvertToXexFormat(SkyEntry21990 src, SkyEntryXex? existingXex = null,
+            bool skyColourToFog = false, bool applyN64FogDistances = true)
         {
             // Start with existing XEX data if provided (preserves unknown fields)
             var xex = existingXex ?? new SkyEntryXex();
@@ -321,29 +304,41 @@ namespace XBLA_Setup_Editor
             // Convert level ID (truncate to 16-bit)
             xex.LevelId = (ushort)src.LevelId;
 
-            // Get XBLA fog ratios for this level (default to 1.0 if not found)
-            var (farRatio, nearRatio) = applyFogRatios && XblaFogRatios.TryGetValue(src.LevelId, out var ratios) 
-                ? ratios 
-                : (1.0f, 1.0f);
-
-            // Convert floats to integers, applying XBLA ratios
+            // Convert floats to integers
             xex.BlendMult = (ushort)Math.Clamp(src.BlendMult, 0, 65535);
-            xex.FarFog = (ushort)Math.Clamp(src.FarFog * farRatio, 0, 65535);
-            xex.NearFog = (ushort)Math.Clamp(src.NearFog * nearRatio, 0, 65535);
-            
+
+            // Apply ratio to XBLA near fog (Unk24) to make it thicker if enabled
+            // Keep far fog (Unk2C) unchanged to prevent skydome clipping
+            if (applyN64FogDistances && existingXex != null)
+            {
+                // Get XBLA fog ratios for this level using XBLA level ID (default to 3.0 if not found)
+                var (_, nearRatio) = XblaFogRatios.TryGetValue(existingXex.LevelId, out var ratios)
+                    ? ratios
+                    : (3.0f, 3.0f);
+
+                // If ratio is 0 or invalid, use default of 3.0
+                if (nearRatio <= 0) nearRatio = 3.0f;
+
+                // Apply ratio to make fog thicker (lower distance = fog starts closer)
+                var newNearFog = existingXex.Unk24 / nearRatio;
+                xex.Unk24 = (uint)Math.Clamp(newNearFog, 0, uint.MaxValue);
+            }
+
             // SKIP MaxObjVis and FarObjObfuscDist - preserve existing XEX values
             // These cause guards to render too close if overwritten
             // xex.MaxObjVis = (ushort)Math.Clamp(src.MaxObjVis, 0, 65535);
             // xex.FarObjObfuscDist = (ushort)Math.Clamp(src.FarObjObfuscDist, 0, 65535);
-            
-            xex.FarIntensity = (ushort)Math.Clamp(src.FarIntensity, 0, 65535);
-            xex.NearIntensity = (ushort)Math.Clamp(src.NearIntensity, 0, 65535);
+
+            // SKIP FarIntensity and NearIntensity - preserve existing XEX values
+            // N64 has these as 0, XBLA has ~996/1000 - setting to 0 makes objects disappear!
+            // xex.FarIntensity = (ushort)Math.Clamp(src.FarIntensity, 0, 65535);
+            // xex.NearIntensity = (ushort)Math.Clamp(src.NearIntensity, 0, 65535);
 
             // Sky colour from 21990 (corrected - was labeled as image offsets)
             xex.SkyColorRed = src.SkyColourRed;
             xex.SkyColorGreen = src.SkyColourGreen;
             xex.SkyColorBlue = src.SkyColourBlue;
-            
+
             // Cloud enable from sky colour flag
             xex.CloudEnable = src.SkyColourFlag;
 
@@ -365,21 +360,21 @@ namespace XBLA_Setup_Editor
 
             // Water enable
             xex.WaterEnable = (byte)(src.WaterEnable != 0 ? 1 : 0);
-            
+
             // Water image offset
-            xex.WaterImgOffset = (byte)Math.Clamp((int)src.WaterImgOffset2, 0, 255);
+            xex.WaterImgOffset = src.WaterImgOffset2 > 255 ? (byte)255 : (byte)src.WaterImgOffset2;
 
             // SKIP XBLA New Near/Far Fog fields (0x24 and 0x2C) - preserve existing XEX values
             // Overwriting these produces graphical errors
             // xex.Unk24 = (uint)Math.Clamp(src.NearFog, 0, uint.MaxValue);  // XBLA New Near Fog
             // xex.Unk2C = (uint)Math.Clamp(src.FarFog, 0, uint.MaxValue);   // XBLA New Far Fog
 
-            // Option: Copy cloud colour to fog colour (XBLA-specific fields at 0x28-0x2A)
-            if (cloudColourToFog)
+            // Option: Copy N64 sky colour to fog colour (XBLA-specific fields at 0x28-0x2A)
+            if (skyColourToFog)
             {
-                xex.FogColorRed = xex.CloudColorRed;
-                xex.FogColorGreen = xex.CloudColorGreen;
-                xex.FogColorBlue = xex.CloudColorBlue;
+                xex.FogColorRed = src.SkyColourRed;
+                xex.FogColorGreen = src.SkyColourGreen;
+                xex.FogColorBlue = src.SkyColourBlue;
             }
 
             // Set defaults for unknown fields if not preserving existing
@@ -506,13 +501,13 @@ namespace XBLA_Setup_Editor
                 entry.IntensityDiff = ReadFloatBE(offset + 0x1C);
                 entry.FarIntensity = ReadFloatBE(offset + 0x20);
                 entry.NearIntensity = ReadFloatBE(offset + 0x24);
-                
+
                 // 0x28-0x2B: Sky Colour (RGB + flag)
                 entry.SkyColourRed = RawData[offset + 0x28];
                 entry.SkyColourGreen = RawData[offset + 0x29];
                 entry.SkyColourBlue = RawData[offset + 0x2A];
                 entry.SkyColourFlag = RawData[offset + 0x2B];
-                
+
                 entry.CloudHeight = ReadFloatBE(offset + 0x2C);
                 entry.Unk1 = ReadU32BE(offset + 0x30);
                 entry.CloudsRed = ReadFloatBE(offset + 0x34);
@@ -537,16 +532,16 @@ namespace XBLA_Setup_Editor
         /// </summary>
         /// <param name="xexData">XEX file data to patch</param>
         /// <param name="log">Log output</param>
-        /// <param name="cloudColourToFog">If true, copies cloud colour to fog colour fields</param>
-        /// <param name="applyFogRatios">If true, applies XBLA fog ratios to preserve HD adjustments</param>
-        public int ApplySkyData(byte[] xexData, List<string> log, bool cloudColourToFog = false, bool applyFogRatios = true)
+        /// <param name="skyColourToFog">If true, copies N64 sky colour to fog colour fields</param>
+        /// <param name="applyN64FogDistances">If true, applies fog ratios to make XBLA fog thicker</param>
+        public int ApplySkyData(byte[] xexData, List<string> log, bool skyColourToFog = false, bool applyN64FogDistances = true)
         {
             log.Add($"=== Applying Sky Data ===");
             log.Add($"21990 sky entries: {SkyEntries.Count}");
             log.Add($"XEX sky table: 0x{SKY_DATA_START_XEX:X} - 0x{SKY_DATA_END_XEX:X}");
             log.Add($"XEX entry size: 0x{SKY_ENTRY_SIZE_XEX:X} ({SKY_ENTRY_SIZE_XEX} bytes)");
-            log.Add($"Cloud colour to fog: {(cloudColourToFog ? "Yes" : "No")}");
-            log.Add($"Apply XBLA fog ratios: {(applyFogRatios ? "Yes" : "No")}");
+            log.Add($"N64 sky colour to fog: {(skyColourToFog ? "Yes" : "No")}");
+            log.Add($"Apply N64 fog distances: {(applyN64FogDistances ? "Yes" : "No")}");
 
             if (SKY_DATA_START_XEX + (SKY_ENTRY_COUNT * SKY_ENTRY_SIZE_XEX) > xexData.Length)
             {
@@ -575,20 +570,30 @@ namespace XBLA_Setup_Editor
                 // Find matching 21990 entry by level ID
                 if (skyByLevel.TryGetValue(existingXex.LevelId, out var src))
                 {
-                    // Get ratios for logging
-                    var (farRatio, nearRatio) = applyFogRatios && XblaFogRatios.TryGetValue(src.LevelId, out var ratios)
-                        ? ratios
-                        : (1.0f, 1.0f);
+                    // Capture original XBLA fog value before modification
+                    var originalNearFog = existingXex.Unk24;
 
                     // Convert and write
-                    var newXex = ConvertToXexFormat(src, existingXex, cloudColourToFog, applyFogRatios);
+                    var newXex = ConvertToXexFormat(src, existingXex, skyColourToFog, applyN64FogDistances);
                     var newBytes = newXex.ToBytes();
                     Array.Copy(newBytes, 0, xexData, xexOffset, SKY_ENTRY_SIZE_XEX);
 
-                    log.Add($"  [{i:D2}] Level 0x{existingXex.LevelId:X4}: " +
-                            $"Fog={src.FarFog:F0}x{farRatio:F2}={newXex.FarFog}/{src.NearFog:F0}x{nearRatio:F2}={newXex.NearFog} " +
-                            $"Sky=({newXex.SkyColorRed},{newXex.SkyColorGreen},{newXex.SkyColorBlue}) " +
-                            $"Cloud=({newXex.CloudColorRed},{newXex.CloudColorGreen},{newXex.CloudColorBlue})");
+                    // Log info
+                    string fogInfo;
+                    if (applyN64FogDistances)
+                    {
+                        var (_, nearRatio) = XblaFogRatios.TryGetValue(existingXex.LevelId, out var ratios)
+                            ? ratios
+                            : (3.0f, 3.0f);
+                        if (nearRatio <= 0) nearRatio = 3.0f;
+                        fogInfo = $"NearFog={originalNearFog}/{nearRatio:F1}→{newXex.Unk24}";
+                    }
+                    else
+                    {
+                        fogInfo = "colours only";
+                    }
+
+                    log.Add($"  [{i:D2}] Level 0x{existingXex.LevelId:X2}: {fogInfo}");
                     patchedCount++;
                 }
             }

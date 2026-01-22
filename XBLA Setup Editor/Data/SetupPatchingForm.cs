@@ -29,7 +29,6 @@ namespace XBLA_Setup_Editor
 
         // Hybrid options
         private readonly CheckBox _chkAllowMp;
-        private readonly CheckBox _chkAllowEndOfXex;
         private readonly CheckBox _chkAllowExtendXex;
 
         private readonly CheckBox _chkSplitTwoXex;
@@ -170,8 +169,7 @@ namespace XBLA_Setup_Editor
             var btnBrowseOutputXex = new Button { Text = "Browse...", Dock = DockStyle.Fill };
 
             _chkAllowMp = new CheckBox { Text = "Use MP pool overflow (destructive)", AutoSize = true, Dock = DockStyle.Left, Checked = true };
-            _chkAllowEndOfXex = new CheckBox { Text = $"Use End-of-XEX zeros (from 0x{XexSetupPatcher.EndOfXexDefaultStart:X})", AutoSize = true, Dock = DockStyle.Left, Checked = true };
-            _chkAllowExtendXex = new CheckBox { Text = "Extend XEX if needed (experimental)", AutoSize = true, Dock = DockStyle.Left, Checked = false };
+            _chkAllowExtendXex = new CheckBox { Text = "Extend XEX if needed (adds data beyond file, updates headers)", AutoSize = true, Dock = DockStyle.Left, Checked = false };
 
             _chkSplitTwoXex = new CheckBox { Text = "If not enough room: split across TWO output XEX files", AutoSize = true, Dock = DockStyle.Left, Checked = false };
             _txtOutputXex2 = new TextBox { Dock = DockStyle.Fill, ReadOnly = true };
@@ -227,9 +225,6 @@ namespace XBLA_Setup_Editor
 
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
             layout.Controls.Add(_chkAllowMp, 1, r++);
-
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-            layout.Controls.Add(_chkAllowEndOfXex, 1, r++);
 
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
             layout.Controls.Add(_chkAllowExtendXex, 1, r++);
@@ -542,7 +537,6 @@ namespace XBLA_Setup_Editor
                 byte[] xexBytes = File.ReadAllBytes(inXex);
 
                 bool allowMp = _chkAllowMp.Checked;
-                bool allowEnd = _chkAllowEndOfXex.Checked;
                 bool allowExtend = _chkAllowExtendXex.Checked;
 
                 const int align = 0x10;
@@ -557,8 +551,6 @@ namespace XBLA_Setup_Editor
                         xex: xexBytes,
                         levelToSize: levelToBinSizePass1,
                         allowMp: allowMp,
-                        allowEndOfXex: allowEnd,
-                        endOfXexStart: XexSetupPatcher.EndOfXexDefaultStart,
                         allowExtendXex: allowExtend,
                         extendChunkBytes: extendChunk,
                         align: align,
@@ -617,8 +609,6 @@ namespace XBLA_Setup_Editor
                         levelToSize: levelToBinSizePass1,
                         candidateLevels: XexSetupPatcher.PriorityOrder,
                         allowMp: allowMp,
-                        allowEndOfXex: allowEnd,
-                        endOfXexStart: XexSetupPatcher.EndOfXexDefaultStart,
                         allowExtendXex: allowExtend,
                         extendChunkBytes: extendChunk,
                         align: align,
