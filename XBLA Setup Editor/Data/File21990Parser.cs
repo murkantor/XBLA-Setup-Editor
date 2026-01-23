@@ -63,7 +63,7 @@ namespace XBLA_Setup_Editor
             { 0x27, (1.0f, 1.0f) },   // Caverns
             { 0x28, (1.0f, 1.0f) },   // Citadel
             { 0x29, (1.0f, 1.5f) },   // Cradle
-            { 0x2B, (3.0f, 3.0f) },   // Surface II
+            { 0x2B, (2.0f, 2.0f) },   // Surface II
             { 0x2D, (1.0f, 1.0f) },   // Basement
             { 0x2E, (1.0f, 1.0f) },   // Stack
             { 0x30, (1.0f, 1.0f) },   // Library
@@ -307,7 +307,7 @@ namespace XBLA_Setup_Editor
             // Convert floats to integers
             xex.BlendMult = (ushort)Math.Clamp(src.BlendMult, 0, 65535);
 
-            // Apply ratio to XBLA near fog (Unk24) to make it thicker if enabled
+            // Apply ratio to fog fields to make them thicker if enabled
             // Keep far fog (Unk2C) unchanged to prevent skydome clipping
             if (applyN64FogDistances && existingXex != null)
             {
@@ -319,9 +319,15 @@ namespace XBLA_Setup_Editor
                 // If ratio is 0 or invalid, use default of 3.0
                 if (nearRatio <= 0) nearRatio = 3.0f;
 
-                // Apply ratio to make fog thicker (lower distance = fog starts closer)
+                // Apply ratio to XBLA near fog (0x24) - used by XBLA graphics mode
                 var newNearFog = existingXex.Unk24 / nearRatio;
                 xex.Unk24 = (uint)Math.Clamp(newNearFog, 0, uint.MaxValue);
+
+                // Apply ratio to legacy fog fields (0x04/0x06) - used by N64 graphics mode
+                var newLegacyFar = existingXex.FarFog / nearRatio;
+                var newLegacyNear = existingXex.NearFog / nearRatio;
+                xex.FarFog = (ushort)Math.Clamp(newLegacyFar, 0, 65535);
+                xex.NearFog = (ushort)Math.Clamp(newLegacyNear, 0, 65535);
             }
 
             // SKIP MaxObjVis and FarObjObfuscDist - preserve existing XEX values
