@@ -52,10 +52,10 @@ namespace XBLA_Setup_Editor.Data
         public class XexAnalysis
         {
             public bool IsValid { get; set; }
-            public string Error { get; set; }
+            public string Error { get; set; } = string.Empty;
             public int FileSize { get; set; }
             public int ImageSize { get; set; }
-            public byte[] CurrentSha1 { get; set; }
+            public byte[] CurrentSha1 { get; set; } = Array.Empty<byte>();
             public int CompressionType { get; set; }
             public List<BlockInfo> Blocks { get; set; } = new List<BlockInfo>();
             public int TotalDataSize { get; set; }
@@ -83,12 +83,12 @@ namespace XBLA_Setup_Editor.Data
         public class ExtensionResult
         {
             public bool Success { get; set; }
-            public string Error { get; set; }
+            public string Error { get; set; } = string.Empty;
             public int BytesAdded { get; set; }
             public uint NewDataMemoryAddress { get; set; }
             public uint NewEndMemoryAddress { get; set; }
             public int NewImageSize { get; set; }
-            public byte[] NewSha1 { get; set; }
+            public byte[] NewSha1 { get; set; } = Array.Empty<byte>();
             public List<string> Log { get; set; } = new List<string>();
         }
 
@@ -197,7 +197,7 @@ namespace XBLA_Setup_Editor.Data
         /// <param name="newData">Data to append</param>
         /// <param name="recalculateSha1">Ignored - we don't modify image_size so hash stays valid</param>
         /// <returns>Modified XEX data and extension result</returns>
-        public static (byte[] ModifiedXex, ExtensionResult Result) Extend(
+        public static (byte[]? ModifiedXex, ExtensionResult Result) Extend(
             byte[] xexData, 
             byte[] newData, 
             bool recalculateSha1 = false)  // Ignored - we don't change image_size
@@ -310,7 +310,7 @@ namespace XBLA_Setup_Editor.Data
 
                 var (modifiedXex, extResult) = Extend(xexData, newData, recalculateSha1);
 
-                if (!extResult.Success)
+                if (!extResult.Success || modifiedXex == null)
                 {
                     return extResult;
                 }

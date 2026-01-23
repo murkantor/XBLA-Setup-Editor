@@ -4,7 +4,9 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\nRemove ClosedXML dependency and optimize codebase\n\n- Remove unused ClosedXML package reference and TEST.xlsx file\n- Delete superseded MainMenuForm.cs \\(replaced by ToolLauncherForm.cs\\)\n- Create shared DataHelper.BuildDictionary\\(\\) to consolidate duplicate Build\\(\\) methods\n- Update all data classes to use DataHelper and remove redundant using statements\n- Optimize hex formatting in WeaponEditorForm.cs using StringBuilder\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git config:*)",
       "Bash(git push:*)",
-      "Bash(dotnet build:*)"
+      "Bash(dotnet build:*)",
+      "Bash(findstr:*)",
+      "Bash(dotnet clean:*)"
     ]
   }
 }

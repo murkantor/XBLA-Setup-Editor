@@ -20,12 +20,11 @@ namespace XBLA_Setup_Editor.Data
         private readonly CheckBox _chkRecalcSha1;
         private readonly CheckBox _chkBackup;
         private readonly Label _lblAnalysis;
-        private readonly PropertyGrid _propGrid;
 
         // State
-        private byte[] _xexData;
-        private byte[] _dataToAppend;
-        private XexExtender.XexAnalysis _analysis;
+        private byte[]? _xexData;
+        private byte[]? _dataToAppend;
+        private XexExtender.XexAnalysis? _analysis;
 
         public XexExtenderForm()
         {
@@ -180,7 +179,7 @@ namespace XBLA_Setup_Editor.Data
             _txtLog.AppendText(message + Environment.NewLine);
         }
 
-        private void BtnBrowseXex_Click(object sender, EventArgs e)
+        private void BtnBrowseXex_Click(object? sender, EventArgs e)
         {
             using (var ofd = new OpenFileDialog())
             {
@@ -190,8 +189,8 @@ namespace XBLA_Setup_Editor.Data
                 if (ofd.ShowDialog() == DialogResult.OK)
                 {
                     _txtInputXex.Text = ofd.FileName;
-                    _txtOutputXex.Text = Path.Combine(
-                        Path.GetDirectoryName(ofd.FileName),
+                    var dir = Path.GetDirectoryName(ofd.FileName) ?? "";
+                    _txtOutputXex.Text = Path.Combine(dir,
                         Path.GetFileNameWithoutExtension(ofd.FileName) + "_extended.xex");
 
                     // Auto-load and analyze
@@ -213,7 +212,7 @@ namespace XBLA_Setup_Editor.Data
             }
         }
 
-        private void BtnBrowseData_Click(object sender, EventArgs e)
+        private void BtnBrowseData_Click(object? sender, EventArgs e)
         {
             using (var ofd = new OpenFileDialog())
             {
@@ -247,7 +246,7 @@ namespace XBLA_Setup_Editor.Data
             }
         }
 
-        private void BtnBrowseOutput_Click(object sender, EventArgs e)
+        private void BtnBrowseOutput_Click(object? sender, EventArgs e)
         {
             using (var sfd = new SaveFileDialog())
             {
@@ -267,7 +266,7 @@ namespace XBLA_Setup_Editor.Data
             }
         }
 
-        private void BtnAnalyze_Click(object sender, EventArgs e)
+        private void BtnAnalyze_Click(object? sender, EventArgs e)
         {
             if (_xexData == null)
             {
@@ -280,6 +279,12 @@ namespace XBLA_Setup_Editor.Data
 
         private void PerformAnalysis()
         {
+            if (_xexData == null)
+            {
+                Log("No XEX data loaded.");
+                return;
+            }
+
             _analysis = XexExtender.Analyze(_xexData);
 
             if (_analysis.IsValid)
@@ -312,7 +317,7 @@ namespace XBLA_Setup_Editor.Data
             UpdateButtonStates();
         }
 
-        private void BtnExtend_Click(object sender, EventArgs e)
+        private void BtnExtend_Click(object? sender, EventArgs e)
         {
             if (_xexData == null || _dataToAppend == null || _analysis == null || !_analysis.IsValid)
             {
@@ -351,7 +356,7 @@ namespace XBLA_Setup_Editor.Data
                     Log(line);
                 }
 
-                if (result.Success)
+                if (result.Success && modifiedXex != null)
                 {
                     // Create backup if needed
                     if (_chkBackup.Checked && File.Exists(outputPath))

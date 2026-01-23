@@ -6,6 +6,7 @@ namespace XBLA_Setup_Editor.Data
         {
             ("Nothing (No Pickup)",0x60),
             ("Unarmed",0x60),
+            ("KF7",0xB8),
             ("Grenade Launcher",0xB9),
             ("Hunting Knives",0xBA),
             ("Moonraker Laser",0xBB),

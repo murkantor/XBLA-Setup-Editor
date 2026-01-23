@@ -350,7 +350,7 @@ namespace XBLA_Setup_Editor
         private void RefreshOffset()
         {
             var level = _cbLevel.SelectedItem?.ToString() ?? string.Empty;
-            string offset = string.Empty;
+            string? offset = null;
 
             if (_rbSolo.Checked)
                 _soloOffsets.TryGetValue(level, out offset);
@@ -699,11 +699,17 @@ namespace XBLA_Setup_Editor
 
         private static bool TryResolveInputFile(Dictionary<string, string> byName, string baseName, out string path)
         {
-            if (byName.TryGetValue(baseName, out path))
+            if (byName.TryGetValue(baseName, out var foundPath1) && foundPath1 != null)
+            {
+                path = foundPath1;
                 return true;
+            }
 
-            if (byName.TryGetValue(baseName + ".set", out path))
+            if (byName.TryGetValue(baseName + ".set", out var foundPath2) && foundPath2 != null)
+            {
+                path = foundPath2;
                 return true;
+            }
 
             path = string.Empty;
             return false;

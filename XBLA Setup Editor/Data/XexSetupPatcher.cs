@@ -533,7 +533,7 @@ namespace XBLA_Setup_Editor
                 byte[] extensionData = new byte[extensionSize];
 
                 var (extendedXex, extResult) = XexExtender.Extend(xex, extensionData, recalculateSha1: false);
-                if (!extResult.Success)
+                if (!extResult.Success || extendedXex == null)
                     throw new InvalidOperationException($"Failed to extend XEX: {extResult.Error}");
 
                 xex = extendedXex;

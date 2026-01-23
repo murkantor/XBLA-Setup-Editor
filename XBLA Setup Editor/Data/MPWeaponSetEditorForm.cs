@@ -15,6 +15,7 @@ namespace XBLA_Setup_Editor
         private readonly Button _btnSaveXex;
         private readonly CheckBox _chkBackup;
         private readonly ListBox _lstWeaponSets;
+        private readonly TextBox _txtTextId;
         private readonly DataGridView _dgvWeapons;
         private readonly TextBox _txtLog;
 
@@ -60,22 +61,25 @@ namespace XBLA_Setup_Editor
             pathPanel.Controls.Add(btnBrowse);
             _btnLoadXex = new Button { Text = "Load", Width = 60 };
             pathPanel.Controls.Add(_btnLoadXex);
+            _chkBackup = new CheckBox { Text = "Backup", Checked = true, AutoSize = true, Margin = new Padding(10, 6, 0, 0) };
+            pathPanel.Controls.Add(_chkBackup);
+            _btnSaveXex = new Button { Text = "Save XEX", Width = 75, Enabled = false };
+            pathPanel.Controls.Add(_btnSaveXex);
             mainLayout.Controls.Add(pathPanel, 0, 0);
-            mainLayout.SetColumnSpan(pathPanel, 2);
+            mainLayout.SetColumnSpan(pathPanel, 3);
 
-            // Save button and backup checkbox
-            var savePanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown };
-            _chkBackup = new CheckBox { Text = "Backup", Checked = true, AutoSize = true };
-            savePanel.Controls.Add(_chkBackup);
-            _btnSaveXex = new Button { Text = "Save XEX", Dock = DockStyle.Top, Enabled = false };
-            savePanel.Controls.Add(_btnSaveXex);
-            mainLayout.Controls.Add(savePanel, 2, 0);
-
-            // Row 1: Labels
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+            // Row 1: Labels and Text ID
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
             mainLayout.Controls.Add(new Label { Text = "Weapon Sets:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft }, 0, 1);
-            mainLayout.Controls.Add(new Label { Text = "Weapons in Set:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft }, 1, 1);
-            mainLayout.SetColumnSpan(mainLayout.GetControlFromPosition(1, 1), 2);
+
+            var textIdPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
+            textIdPanel.Controls.Add(new Label { Text = "Weapons in Set:      Text ID: 0x", AutoSize = true, Margin = new Padding(0, 6, 0, 0) });
+            _txtTextId = new TextBox { Width = 60, MaxLength = 4, CharacterCasing = CharacterCasing.Upper, Enabled = false };
+            _txtTextId.Leave += (_, __) => OnTextIdChanged();
+            _txtTextId.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) OnTextIdChanged(); };
+            textIdPanel.Controls.Add(_txtTextId);
+            mainLayout.Controls.Add(textIdPanel, 1, 1);
+            mainLayout.SetColumnSpan(textIdPanel, 2);
 
             // Row 2: Lists
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 70));
@@ -96,7 +100,8 @@ namespace XBLA_Setup_Editor
                 SelectionMode = DataGridViewSelectionMode.CellSelect,
                 MultiSelect = false,
                 RowHeadersVisible = false,
-                BackgroundColor = SystemColors.Window
+                BackgroundColor = SystemColors.Window,
+                EditMode = DataGridViewEditMode.EditOnEnter
             };
             SetupWeaponsGrid();
             mainLayout.Controls.Add(_dgvWeapons, 1, 2);
@@ -104,8 +109,9 @@ namespace XBLA_Setup_Editor
 
             // Row 3: Log label
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
-            mainLayout.Controls.Add(new Label { Text = "Log:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft }, 0, 3);
-            mainLayout.SetColumnSpan(mainLayout.GetControlFromPosition(0, 3), 3);
+            var lblLog = new Label { Text = "Log:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft };
+            mainLayout.Controls.Add(lblLog, 0, 3);
+            mainLayout.SetColumnSpan(lblLog, 3);
 
             // Row 4: Log
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 30));
@@ -146,6 +152,21 @@ namespace XBLA_Setup_Editor
                 // Commit combo box changes immediately
                 if (_dgvWeapons.IsCurrentCellDirty)
                     _dgvWeapons.CommitEdit(DataGridViewDataErrorContexts.Commit);
+            };
+            _dgvWeapons.DataError += (_, e) =>
+            {
+                // Suppress combo box errors for unknown values
+                e.ThrowException = false;
+            };
+            _dgvWeapons.CellClick += (_, e) =>
+            {
+                // Immediately show dropdown when clicking combo box cells
+                if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+                {
+                    _dgvWeapons.BeginEdit(true);
+                    if (_dgvWeapons.EditingControl is ComboBox cb)
+                        cb.DroppedDown = true;
+                }
             };
         }
 
@@ -299,6 +320,10 @@ namespace XBLA_Setup_Editor
             var selectEntry = _parser.SelectList[_selectedSetIndex];
             var weaponSet = _parser.GetWeaponSetForSelectEntry(selectEntry);
 
+            // Update Text ID field (show as 4 hex chars)
+            _txtTextId.Text = (selectEntry.TextId >> 16).ToString("X4");
+            _txtTextId.Enabled = true;
+
             _dgvWeapons.Rows.Clear();
 
             if (weaponSet == null)
@@ -309,6 +334,11 @@ namespace XBLA_Setup_Editor
 
             Log($"Selected: {MPWeaponSetParser.SelectListNames[_selectedSetIndex]} (Set {selectEntry.WeaponSetIndex})");
 
+            // Get combo box columns for adding unknown values
+            var weaponCol = (DataGridViewComboBoxColumn)_dgvWeapons.Columns["Weapon"];
+            var ammoCol = (DataGridViewComboBoxColumn)_dgvWeapons.Columns["AmmoType"];
+            var propCol = (DataGridViewComboBoxColumn)_dgvWeapons.Columns["Prop"];
+
             // Populate weapons grid
             for (int i = 0; i < MPWeaponSetParser.WEAPONS_PER_SET; i++)
             {
@@ -316,13 +346,49 @@ namespace XBLA_Setup_Editor
                 int rowIdx = _dgvWeapons.Rows.Add();
                 var row = _dgvWeapons.Rows[rowIdx];
 
+                // Get display names, adding unknown values to combo boxes if needed
+                var weaponName = GetWeaponName(weapon.WeaponId);
+                var ammoName = GetAmmoName(weapon.AmmoType);
+                var propName = GetPropName(weapon.PropId);
+
+                EnsureComboBoxContains(weaponCol, weaponName);
+                EnsureComboBoxContains(ammoCol, ammoName);
+                EnsureComboBoxContains(propCol, propName);
+
                 row.Cells["Slot"].Value = i.ToString();
-                row.Cells["Weapon"].Value = GetWeaponName(weapon.WeaponId);
-                row.Cells["AmmoType"].Value = GetAmmoName(weapon.AmmoType);
+                row.Cells["Weapon"].Value = weaponName;
+                row.Cells["AmmoType"].Value = ammoName;
                 row.Cells["AmmoCount"].Value = weapon.AmmoCount.ToString();
                 row.Cells["HasProp"].Value = weapon.WeaponToggle != 0;
-                row.Cells["Prop"].Value = GetPropName(weapon.PropId);
+                row.Cells["Prop"].Value = propName;
                 row.Cells["Scale"].Value = weapon.Scale.ToString();
+                row.Tag = weapon; // Store reference for editing
+            }
+        }
+
+        private static void EnsureComboBoxContains(DataGridViewComboBoxColumn col, string value)
+        {
+            if (!col.Items.Contains(value))
+                col.Items.Add(value);
+        }
+
+        private void OnTextIdChanged()
+        {
+            if (_parser == null || _selectedSetIndex < 0)
+                return;
+
+            var text = _txtTextId.Text.Trim();
+            if (uint.TryParse(text, System.Globalization.NumberStyles.HexNumber, null, out var textIdUpper))
+            {
+                // Store as upper 16 bits with lower 16 bits as 0000
+                uint fullTextId = textIdUpper << 16;
+                _parser.SelectList[_selectedSetIndex].TextId = fullTextId;
+                Log($"Text ID for {MPWeaponSetParser.SelectListNames[_selectedSetIndex]} changed to 0x{fullTextId:X8}");
+            }
+            else
+            {
+                // Revert to current value if invalid
+                _txtTextId.Text = (_parser.SelectList[_selectedSetIndex].TextId >> 16).ToString("X4");
             }
         }
 
@@ -357,10 +423,10 @@ namespace XBLA_Setup_Editor
                         weapon.WeaponToggle = (bool)(row.Cells["HasProp"].Value ?? false) ? (byte)1 : (byte)0;
                         break;
                     case "Prop":
-                        weapon.PropId = (ushort)GetCodeByName(PropData.Pairs, row.Cells["Prop"].Value?.ToString() ?? "");
+                        weapon.PropId = (byte)GetCodeByName(PropData.Pairs, row.Cells["Prop"].Value?.ToString() ?? "");
                         break;
                     case "Scale":
-                        if (ushort.TryParse(row.Cells["Scale"].Value?.ToString(), out var scale))
+                        if (byte.TryParse(row.Cells["Scale"].Value?.ToString(), out var scale))
                             weapon.Scale = scale;
                         break;
                 }
@@ -413,17 +479,17 @@ namespace XBLA_Setup_Editor
 
         private string GetWeaponName(int code)
         {
-            return _weaponNames.TryGetValue(code, out var name) ? name : $"Unknown (0x{code:X2})";
+            return _weaponNames.TryGetValue(code, out var name) ? name : $"{code:X2}";
         }
 
         private string GetAmmoName(int code)
         {
-            return _ammoNames.TryGetValue(code, out var name) ? name : $"Unknown (0x{code:X2})";
+            return _ammoNames.TryGetValue(code, out var name) ? name : $"{code:X2}";
         }
 
         private string GetPropName(int code)
         {
-            return _propNames.TryGetValue(code, out var name) ? name : $"Unknown (0x{code:X2})";
+            return _propNames.TryGetValue(code, out var name) ? name : $"{code:X2}";
         }
 
         private static int GetCodeByName((string Name, int Code)[] pairs, string name)
@@ -433,6 +499,11 @@ namespace XBLA_Setup_Editor
                 if (pair.Name == name)
                     return pair.Code;
             }
+
+            // Try to parse as hex (e.g., "0A" or "FF")
+            if (name.Length <= 4 && int.TryParse(name, System.Globalization.NumberStyles.HexNumber, null, out var code))
+                return code;
+
             return 0;
         }
     }

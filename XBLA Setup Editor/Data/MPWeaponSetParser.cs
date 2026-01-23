@@ -35,12 +35,14 @@ namespace XBLA_Setup_Editor
             public byte AmmoType { get; set; }         // 0x01
             public byte AmmoCount { get; set; }        // 0x02
             public byte WeaponToggle { get; set; }     // 0x03 (00 = no prop, 01 = has prop)
-            public ushort PropId { get; set; }         // 0x04-0x05
-            public ushort Scale { get; set; }          // 0x06-0x07
+            public byte Unknown04 { get; set; }        // 0x04 (usually 0x00)
+            public byte PropId { get; set; }           // 0x05
+            public byte Scale { get; set; }            // 0x06
+            public byte Unknown07 { get; set; }        // 0x07 (00/40/80)
 
             public string WeaponName => GetNameByCode(WeaponData.Pairs, WeaponId);
             public string AmmoTypeName => GetNameByCode(AmmoTypeData.Pairs, AmmoType);
-            public string PropName => GetNameByCode(PropData.Pairs, (int)PropId);
+            public string PropName => GetNameByCode(PropData.Pairs, PropId);
 
             public byte[] ToBytes()
             {
@@ -49,8 +51,10 @@ namespace XBLA_Setup_Editor
                 data[1] = AmmoType;
                 data[2] = AmmoCount;
                 data[3] = WeaponToggle;
-                WriteU16BE(data, 4, PropId);
-                WriteU16BE(data, 6, Scale);
+                data[4] = Unknown04;
+                data[5] = PropId;
+                data[6] = Scale;
+                data[7] = Unknown07;
                 return data;
             }
 
@@ -62,8 +66,10 @@ namespace XBLA_Setup_Editor
                     AmmoType = data[offset + 1],
                     AmmoCount = data[offset + 2],
                     WeaponToggle = data[offset + 3],
-                    PropId = ReadU16BE(data, offset + 4),
-                    Scale = ReadU16BE(data, offset + 6)
+                    Unknown04 = data[offset + 4],
+                    PropId = data[offset + 5],
+                    Scale = data[offset + 6],
+                    Unknown07 = data[offset + 7]
                 };
             }
 
@@ -120,18 +126,9 @@ namespace XBLA_Setup_Editor
             public uint WeaponsAddress { get; set; }   // 0x04-0x07 (pointer to weapons)
             public uint Flags { get; set; }            // 0x08-0x0B
 
-            // Calculated weapon set index (-1 for Random which has no weapons)
-            public int WeaponSetIndex
-            {
-                get
-                {
-                    if (WeaponsAddress == 0) return -1;
-                    // Calculate which weapon set this points to
-                    int offset = (int)(WeaponsAddress - 0x82000000 - WEAPONS_START);
-                    if (offset < 0 || offset % WEAPON_SET_SIZE != 0) return -1;
-                    return offset / WEAPON_SET_SIZE;
-                }
-            }
+            // Weapon set index: Select list index 0 = Random (no weapons, returns -1)
+            // Select list indices 1-15 map to weapon set indices 0-14
+            public int WeaponSetIndex => Index == 0 ? -1 : Index - 1;
 
             public byte[] ToBytes()
             {
