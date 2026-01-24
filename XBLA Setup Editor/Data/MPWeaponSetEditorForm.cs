@@ -14,6 +14,7 @@ namespace XBLA_Setup_Editor
         private readonly Button _btnLoadXex;
         private readonly Button _btnSaveXex;
         private readonly CheckBox _chkBackup;
+        private readonly CheckBox _chkBeginner;
         private readonly ListBox _lstWeaponSets;
         private readonly TextBox _txtTextId;
         private readonly DataGridView _dgvWeapons;
@@ -24,6 +25,7 @@ namespace XBLA_Setup_Editor
         private byte[]? _xexData;
         private string? _xexPath;
         private int _selectedSetIndex = -1;
+        private bool _beginnerMode = true;
 
         // --- Lookup dictionaries ---
         private readonly Dictionary<int, string> _weaponNames = new();
@@ -78,6 +80,9 @@ namespace XBLA_Setup_Editor
             _txtTextId.Leave += (_, __) => OnTextIdChanged();
             _txtTextId.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) OnTextIdChanged(); };
             textIdPanel.Controls.Add(_txtTextId);
+            _chkBeginner = new CheckBox { Text = "Beginner (auto-fill ammo/prop)", AutoSize = true, Checked = true, Margin = new Padding(20, 4, 0, 0) };
+            _chkBeginner.CheckedChanged += (_, __) => _beginnerMode = _chkBeginner.Checked;
+            textIdPanel.Controls.Add(_chkBeginner);
             mainLayout.Controls.Add(textIdPanel, 1, 1);
             mainLayout.SetColumnSpan(textIdPanel, 2);
 
@@ -411,6 +416,9 @@ namespace XBLA_Setup_Editor
                 {
                     case "Weapon":
                         weapon.WeaponId = (byte)GetCodeByName(WeaponData.Pairs, row.Cells["Weapon"].Value?.ToString() ?? "");
+                        // Apply beginner defaults when weapon changes
+                        if (_beginnerMode)
+                            ApplyBeginnerDefaultsToRow(row, weapon);
                         break;
                     case "AmmoType":
                         weapon.AmmoType = (byte)GetCodeByName(AmmoTypeData.Pairs, row.Cells["AmmoType"].Value?.ToString() ?? "");
@@ -435,6 +443,48 @@ namespace XBLA_Setup_Editor
             {
                 Log($"Error updating weapon: {ex.Message}");
             }
+        }
+
+        private void ApplyBeginnerDefaultsToRow(DataGridViewRow row, MPWeaponSetParser.WeaponEntry weapon)
+        {
+            var weaponName = row.Cells["Weapon"].Value?.ToString() ?? "";
+
+            // Apply ammo type from beginner rules
+            if (BeginnerRulesData.WeaponToAmmoType.TryGetValue(weaponName, out var ammoType))
+            {
+                var ammoCol = (DataGridViewComboBoxColumn)_dgvWeapons.Columns["AmmoType"];
+                EnsureComboBoxContains(ammoCol, ammoType);
+                row.Cells["AmmoType"].Value = ammoType;
+                weapon.AmmoType = (byte)GetCodeByName(AmmoTypeData.Pairs, ammoType);
+            }
+
+            // Apply ammo count from beginner rules
+            if (BeginnerRulesData.WeaponToDefaultAmmoCount.TryGetValue(weaponName, out var ammoCountStr)
+                && byte.TryParse(ammoCountStr, out var ammoCount))
+            {
+                row.Cells["AmmoCount"].Value = ammoCountStr;
+                weapon.AmmoCount = ammoCount;
+            }
+
+            // Apply prop settings from beginner rules
+            if (BeginnerRulesData.PropNames.Contains(weaponName))
+            {
+                var propCol = (DataGridViewComboBoxColumn)_dgvWeapons.Columns["Prop"];
+                EnsureComboBoxContains(propCol, weaponName);
+                row.Cells["HasProp"].Value = true;
+                row.Cells["Prop"].Value = weaponName;
+                weapon.WeaponToggle = 1;
+                weapon.PropId = (byte)GetCodeByName(PropData.Pairs, weaponName);
+            }
+            else
+            {
+                row.Cells["HasProp"].Value = false;
+                weapon.WeaponToggle = 0;
+            }
+
+            // Default scale to 0 (Normal)
+            row.Cells["Scale"].Value = "0";
+            weapon.Scale = 0;
         }
 
         private void SaveXex()

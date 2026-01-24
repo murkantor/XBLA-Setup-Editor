@@ -57,13 +57,13 @@ namespace XBLA_Setup_Editor
             { 0x21, (1.0f, 1.0f) },   // Dam
             { 0x22, (1.0f, 1.0f) },   // Facility
             { 0x23, (1.5f, 1.75f) },  // Runway
-            { 0x24, (3.0f, 3.0f) },   // Surface I
+            { 0x24, (2.0f, 3.0f) },   // Surface I
             { 0x25, (1.5f, 1.8f) },   // Jungle
             { 0x26, (1.0f, 1.0f) },   // Temple
             { 0x27, (1.0f, 1.0f) },   // Caverns
             { 0x28, (1.0f, 1.0f) },   // Citadel
             { 0x29, (1.0f, 1.5f) },   // Cradle
-            { 0x2B, (2.0f, 2.0f) },   // Surface II
+            { 0x2B, (2.5f, 2.0f) },   // Surface II
             { 0x2D, (1.0f, 1.0f) },   // Basement
             { 0x2E, (1.0f, 1.0f) },   // Stack
             { 0x30, (1.0f, 1.0f) },   // Library
