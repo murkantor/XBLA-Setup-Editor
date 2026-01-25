@@ -14,7 +14,6 @@ namespace XBLA_Setup_Editor
         private readonly Button _btnLoadXex;
         private readonly Button _btnSaveXex;
         private readonly CheckBox _chkBackup;
-        private readonly CheckBox _chkRemoveArmor;  // NEW: Armor removal checkbox
         private readonly CheckBox _chkBeginner;
         private readonly ListBox _lstWeaponSets;
         private readonly TextBox _txtTextId;
@@ -66,19 +65,6 @@ namespace XBLA_Setup_Editor
             pathPanel.Controls.Add(_btnLoadXex);
             _chkBackup = new CheckBox { Text = "Backup", Checked = true, AutoSize = true, Margin = new Padding(10, 6, 0, 0) };
             pathPanel.Controls.Add(_chkBackup);
-            
-            // NEW: Armor removal checkbox
-            _chkRemoveArmor = new CheckBox 
-            { 
-                Text = "Remove Armor", 
-                Checked = false, 
-                AutoSize = true, 
-                Margin = new Padding(10, 6, 0, 0),
-                ForeColor = Color.DarkRed,
-                //ToolTipText = "Overwrite armor blocks with zeros (NOP)"
-            };
-            pathPanel.Controls.Add(_chkRemoveArmor);
-            
             _btnSaveXex = new Button { Text = "Save XEX", Width = 75, Enabled = false };
             pathPanel.Controls.Add(_btnSaveXex);
             mainLayout.Controls.Add(pathPanel, 0, 0);
@@ -187,12 +173,6 @@ namespace XBLA_Setup_Editor
                         cb.DroppedDown = true;
                 }
             };
-            
-            // NEW: Armor removal checkbox tooltip
-            var toolTip = new ToolTip();
-            toolTip.SetToolTip(_chkRemoveArmor, 
-                "Scans XEX setup region (0xC7DF38-0xDDFF5F) and overwrites armor blocks with zeros.\n" +
-                "File size remains unchanged - armor is NOPed in place.");
         }
 
         private void BuildLookups()
@@ -291,10 +271,10 @@ namespace XBLA_Setup_Editor
         private void LoadXex()
         {
             var path = _txtXexPath.Text.Trim();
-            if (!File.Exists(path))
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             {
-                MessageBox.Show(this, "XEX file not found.", "Load XEX",
-                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(this, "Please select a valid XEX file.", "Load XEX",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -468,73 +448,43 @@ namespace XBLA_Setup_Editor
         private void ApplyBeginnerDefaultsToRow(DataGridViewRow row, MPWeaponSetParser.WeaponEntry weapon)
         {
             var weaponName = row.Cells["Weapon"].Value?.ToString() ?? "";
-            if (string.IsNullOrWhiteSpace(weaponName) || weaponName == "None")
-                return;
 
-            // Auto-fill ammo type based on weapon
-            var ammoName = GetDefaultAmmoType(weaponName);
-            row.Cells["AmmoType"].Value = ammoName;
-            weapon.AmmoType = (byte)GetCodeByName(AmmoTypeData.Pairs, ammoName);
-
-            // Auto-fill prop if weapon typically has one
-            if (WeaponHasDefaultProp(weaponName))
+            // Apply ammo type from beginner rules
+            if (BeginnerRulesData.WeaponToAmmoType.TryGetValue(weaponName, out var ammoType))
             {
-                row.Cells["HasProp"].Value = true;
-                weapon.WeaponToggle = 1;
-
-                var propName = GetDefaultProp(weaponName);
-                row.Cells["Prop"].Value = propName;
-                weapon.PropId = (byte)GetCodeByName(PropData.Pairs, propName);
+                var ammoCol = (DataGridViewComboBoxColumn)_dgvWeapons.Columns["AmmoType"];
+                EnsureComboBoxContains(ammoCol, ammoType);
+                row.Cells["AmmoType"].Value = ammoType;
+                weapon.AmmoType = (byte)GetCodeByName(AmmoTypeData.Pairs, ammoType);
             }
-        }
 
-        private static string GetDefaultAmmoType(string weaponName)
-        {
-            // Map weapons to their typical ammo types
-            return weaponName switch
+            // Apply ammo count from beginner rules
+            if (BeginnerRulesData.WeaponToDefaultAmmoCount.TryGetValue(weaponName, out var ammoCountStr)
+                && byte.TryParse(ammoCountStr, out var ammoCount))
             {
-                _ when weaponName.Contains("PP7") || weaponName.Contains("Walther") => "9mm",
-                _ when weaponName.Contains("DD44") || weaponName.Contains("Makarov") => "9mm",
-                _ when weaponName.Contains("KF7") || weaponName.Contains("Soviet") => "7.62mm",
-                _ when weaponName.Contains("ZMG") => "9mm 2x",
-                _ when weaponName.Contains("D5K") || weaponName.Contains("Deutsche") => "9mm 2x",
-                _ when weaponName.Contains("Phantom") => "9mm 2x",
-                _ when weaponName.Contains("AR33") || weaponName.Contains("Assault") => "5.56mm",
-                _ when weaponName.Contains("RC-P90") => "9mm 2x",
-                _ when weaponName.Contains("Shotgun") => "Shotgun",
-                _ when weaponName.Contains("Automatic") => "Shotgun 2x",
-                _ when weaponName.Contains("Sniper") => "7.62mm",
-                _ when weaponName.Contains("Cougar") => ".357",
-                _ when weaponName.Contains("Golden") => "Magnum",
-                _ when weaponName.Contains("Magnum") => ".357",
-                _ when weaponName.Contains("Laser") => "Unlimited",
-                _ when weaponName.Contains("Grenade") && weaponName.Contains("Launcher") => "Grenades",
-                _ when weaponName.Contains("Rocket") => "Rockets",
-                _ when weaponName.Contains("Taser") => "Unlimited",
-                _ when weaponName.Contains("Grenade") => "Grenades",
-                _ when weaponName.Contains("Remote Mine") => "Remote Mines",
-                _ when weaponName.Contains("Proximity Mine") => "Proximity Mines",
-                _ when weaponName.Contains("Timed Mine") => "Timed Mines",
-                _ when weaponName.Contains("Knife") => "Unlimited",
-                _ when weaponName.Contains("Throwing") => "Throwing Knives",
-                _ => "None"
-            };
-        }
+                row.Cells["AmmoCount"].Value = ammoCountStr;
+                weapon.AmmoCount = ammoCount;
+            }
 
-        private static bool WeaponHasDefaultProp(string weaponName)
-        {
-            // Most weapons should have props
-            return !weaponName.Contains("Grenade") &&
-                   !weaponName.Contains("Mine") &&
-                   !weaponName.Contains("Knife") &&
-                   weaponName != "None";
-        }
+            // Apply prop settings from beginner rules
+            if (BeginnerRulesData.PropNames.Contains(weaponName))
+            {
+                var propCol = (DataGridViewComboBoxColumn)_dgvWeapons.Columns["Prop"];
+                EnsureComboBoxContains(propCol, weaponName);
+                row.Cells["HasProp"].Value = true;
+                row.Cells["Prop"].Value = weaponName;
+                weapon.WeaponToggle = 1;
+                weapon.PropId = (byte)GetCodeByName(PropData.Pairs, weaponName);
+            }
+            else
+            {
+                row.Cells["HasProp"].Value = false;
+                weapon.WeaponToggle = 0;
+            }
 
-        private static string GetDefaultProp(string weaponName)
-        {
-            // Try to match weapon name to prop name
-            // In most cases, the prop name matches the weapon name
-            return weaponName;
+            // Default scale to 0 (Normal)
+            row.Cells["Scale"].Value = "0";
+            weapon.Scale = 0;
         }
 
         private void SaveXex()
@@ -556,62 +506,15 @@ namespace XBLA_Setup_Editor
                     File.Copy(_xexPath, backupPath, overwrite: true);
                 }
 
-                // Apply weapon set changes to XEX data
+                // Apply changes to XEX data
                 var log = new List<string>();
                 _parser.ApplyToXex(_xexData, log);
                 foreach (var line in log)
                     Log(line);
 
-                // NEW: Armor removal if checkbox is checked
-                if (_chkRemoveArmor.Checked)
-                {
-                    Log("");
-                    Log("=== Armor Removal ===");
-                    
-                    var armorLog = new List<string>();
-                    var scanResult = XEXArmorRemover.ScanForArmor(_xexData, armorLog);
-                    
-                    foreach (var line in armorLog)
-                        Log(line);
-                    
-                    if (scanResult.ArmorBlocks.Count > 0)
-                    {
-                        var result = MessageBox.Show(this,
-                            $"Found {scanResult.ArmorBlocks.Count} armor blocks ({scanResult.TotalArmorSize:N0} bytes).\n\n" +
-                            $"NOP (zero out) armor blocks in XEX?\n\n" +
-                            $"Method: Overwrite armor with 0x00 bytes\n" +
-                            $"File size: {_xexData.Length:N0} bytes (unchanged)\n" +
-                            $"Armor blocks: {scanResult.ArmorBlocks.Count}",
-                            "Confirm Armor Removal",
-                            MessageBoxButtons.YesNo,
-                            MessageBoxIcon.Question);
-                        
-                        if (result == DialogResult.Yes)
-                        {
-                            var removalLog = new List<string>();
-                            _xexData = XEXArmorRemover.RemoveArmor(_xexData, scanResult, removalLog);
-                            
-                            foreach (var line in removalLog)
-                                Log(line);
-                            
-                            Log("");
-                            Log("✓ Armor removal complete!");
-                        }
-                        else
-                        {
-                            Log("Armor removal cancelled by user.");
-                        }
-                    }
-                    else
-                    {
-                        Log("No armor blocks found.");
-                    }
-                }
-
                 // Save
                 File.WriteAllBytes(_xexPath, _xexData);
                 Log($"Saved: {_xexPath}");
-                Log($"Final size: {_xexData.Length:N0} bytes");
 
                 MessageBox.Show(this, "XEX saved successfully!", "Save XEX",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
