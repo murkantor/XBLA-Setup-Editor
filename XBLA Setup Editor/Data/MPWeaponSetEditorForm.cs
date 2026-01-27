@@ -14,12 +14,15 @@ namespace XBLA_Setup_Editor
         private readonly Button _btnLoadXex;
         private readonly Button _btnSaveXex;
         private readonly CheckBox _chkBackup;
-        private readonly CheckBox _chkRemoveArmor;  // NEW: Armor removal checkbox
+        private readonly CheckBox _chkRemoveArmor;
         private readonly CheckBox _chkBeginner;
         private readonly ListBox _lstWeaponSets;
         private readonly TextBox _txtTextId;
         private readonly DataGridView _dgvWeapons;
         private readonly TextBox _txtLog;
+
+        // 3-char custom text folder code
+        private readonly TextBox _txtTextFolder3;
 
         // --- State ---
         private MPWeaponSetParser? _parser;
@@ -28,10 +31,17 @@ namespace XBLA_Setup_Editor
         private int _selectedSetIndex = -1;
         private bool _beginnerMode = true;
 
+        // Guard to prevent recursive CellValueChanged while applying beginner defaults
+        private bool _isApplyingBeginnerDefaults = false;
+
         // --- Lookup dictionaries ---
         private readonly Dictionary<int, string> _weaponNames = new();
         private readonly Dictionary<int, string> _ammoNames = new();
         private readonly Dictionary<int, string> _propNames = new();
+
+        // --- Text folder patch constants ---
+        private const int TEXT_FOLDER_OFFSET = 0x0000A3AC; // file offset in XEX
+        private const int TEXT_FOLDER_LEN = 3;
 
         public MPWeaponSetEditorForm()
         {
@@ -64,23 +74,34 @@ namespace XBLA_Setup_Editor
             pathPanel.Controls.Add(btnBrowse);
             _btnLoadXex = new Button { Text = "Load", Width = 60 };
             pathPanel.Controls.Add(_btnLoadXex);
+
             _chkBackup = new CheckBox { Text = "Backup", Checked = true, AutoSize = true, Margin = new Padding(10, 6, 0, 0) };
             pathPanel.Controls.Add(_chkBackup);
-            
-            // NEW: Armor removal checkbox
-            _chkRemoveArmor = new CheckBox 
-            { 
-                Text = "Remove Armor", 
-                Checked = false, 
-                AutoSize = true, 
+
+            // Armor removal checkbox
+            _chkRemoveArmor = new CheckBox
+            {
+                Text = "Remove Armor",
+                Checked = false,
+                AutoSize = true,
                 Margin = new Padding(10, 6, 0, 0),
-                ForeColor = Color.DarkRed,
-                //ToolTipText = "Overwrite armor blocks with zeros (NOP)"
+                ForeColor = Color.DarkRed
             };
             pathPanel.Controls.Add(_chkRemoveArmor);
-            
+
+            // 3-char text folder code at 0x0000A3AC
+            pathPanel.Controls.Add(new Label { Text = "Text Folder:", AutoSize = true, Margin = new Padding(10, 6, 5, 0) });
+            _txtTextFolder3 = new TextBox
+            {
+                Width = 40,
+                MaxLength = 3,
+                CharacterCasing = CharacterCasing.Upper
+            };
+            pathPanel.Controls.Add(_txtTextFolder3);
+
             _btnSaveXex = new Button { Text = "Save XEX", Width = 75, Enabled = false };
             pathPanel.Controls.Add(_btnSaveXex);
+
             mainLayout.Controls.Add(pathPanel, 0, 0);
             mainLayout.SetColumnSpan(pathPanel, 3);
 
@@ -90,13 +111,16 @@ namespace XBLA_Setup_Editor
 
             var textIdPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
             textIdPanel.Controls.Add(new Label { Text = "Weapons in Set:      Text ID: 0x", AutoSize = true, Margin = new Padding(0, 6, 0, 0) });
+
             _txtTextId = new TextBox { Width = 60, MaxLength = 4, CharacterCasing = CharacterCasing.Upper, Enabled = false };
             _txtTextId.Leave += (_, __) => OnTextIdChanged();
             _txtTextId.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) OnTextIdChanged(); };
             textIdPanel.Controls.Add(_txtTextId);
+
             _chkBeginner = new CheckBox { Text = "Beginner (auto-fill ammo/prop)", AutoSize = true, Checked = true, Margin = new Padding(20, 4, 0, 0) };
             _chkBeginner.CheckedChanged += (_, __) => _beginnerMode = _chkBeginner.Checked;
             textIdPanel.Controls.Add(_chkBeginner);
+
             mainLayout.Controls.Add(textIdPanel, 1, 1);
             mainLayout.SetColumnSpan(textIdPanel, 2);
 
@@ -148,6 +172,15 @@ namespace XBLA_Setup_Editor
 
             Controls.Add(mainLayout);
 
+            // Tooltips
+            var toolTip = new ToolTip();
+            toolTip.SetToolTip(_chkRemoveArmor,
+                "Scans XEX setup region (0xC7DF38-0xDDFF5F) and overwrites armor objects (type 0x15) with zeros.\n" +
+                "File size remains unchanged - objects are NOPed in place.");
+
+            toolTip.SetToolTip(_txtTextFolder3,
+                "3-letter folder code written into XEX at 0x0000A3AC.\nExample: ENG, FRA, DEU, etc.");
+
             // --- Events ---
             btnBrowse.Click += (_, __) =>
             {
@@ -164,7 +197,9 @@ namespace XBLA_Setup_Editor
 
             _btnLoadXex.Click += (_, __) => LoadXex();
             _btnSaveXex.Click += (_, __) => SaveXex();
+
             _lstWeaponSets.SelectedIndexChanged += (_, __) => OnWeaponSetSelected();
+
             _dgvWeapons.CellValueChanged += OnWeaponCellChanged;
             _dgvWeapons.CurrentCellDirtyStateChanged += (_, __) =>
             {
@@ -187,12 +222,6 @@ namespace XBLA_Setup_Editor
                         cb.DroppedDown = true;
                 }
             };
-            
-            // NEW: Armor removal checkbox tooltip
-            var toolTip = new ToolTip();
-            toolTip.SetToolTip(_chkRemoveArmor, 
-                "Scans XEX setup region (0xC7DF38-0xDDFF5F) and overwrites armor blocks with zeros.\n" +
-                "File size remains unchanged - armor is NOPed in place.");
         }
 
         private void BuildLookups()
@@ -227,7 +256,7 @@ namespace XBLA_Setup_Editor
                 DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton,
                 FlatStyle = FlatStyle.Flat
             };
-            foreach (var (name, code) in WeaponData.Pairs)
+            foreach (var (name, _) in WeaponData.Pairs)
                 colWeapon.Items.Add(name);
             _dgvWeapons.Columns.Add(colWeapon);
 
@@ -239,7 +268,7 @@ namespace XBLA_Setup_Editor
                 DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton,
                 FlatStyle = FlatStyle.Flat
             };
-            foreach (var (name, code) in AmmoTypeData.Pairs)
+            foreach (var (name, _) in AmmoTypeData.Pairs)
                 colAmmo.Items.Add(name);
             _dgvWeapons.Columns.Add(colAmmo);
 
@@ -269,7 +298,7 @@ namespace XBLA_Setup_Editor
                 DisplayStyle = DataGridViewComboBoxDisplayStyle.DropDownButton,
                 FlatStyle = FlatStyle.Flat
             };
-            foreach (var (name, code) in PropData.Pairs)
+            foreach (var (name, _) in PropData.Pairs)
                 colProp.Items.Add(name);
             _dgvWeapons.Columns.Add(colProp);
 
@@ -306,6 +335,11 @@ namespace XBLA_Setup_Editor
                 _xexData = File.ReadAllBytes(path);
                 _xexPath = path;
                 Log($"XEX size: {_xexData.Length:N0} bytes");
+
+                // Read current 3-char text folder code
+                _txtTextFolder3.Text = ReadTextFolderCode(_xexData);
+                if (!string.IsNullOrWhiteSpace(_txtTextFolder3.Text))
+                    Log($"Text folder code: {_txtTextFolder3.Text}");
 
                 _parser = MPWeaponSetParser.LoadFromXex(_xexData);
                 Log($"Loaded {_parser.WeaponSets.Count} weapon sets");
@@ -371,7 +405,6 @@ namespace XBLA_Setup_Editor
                 int rowIdx = _dgvWeapons.Rows.Add();
                 var row = _dgvWeapons.Rows[rowIdx];
 
-                // Get display names, adding unknown values to combo boxes if needed
                 var weaponName = GetWeaponName(weapon.WeaponId);
                 var ammoName = GetAmmoName(weapon.AmmoType);
                 var propName = GetPropName(weapon.PropId);
@@ -387,7 +420,7 @@ namespace XBLA_Setup_Editor
                 row.Cells["HasProp"].Value = weapon.WeaponToggle != 0;
                 row.Cells["Prop"].Value = propName;
                 row.Cells["Scale"].Value = weapon.Scale.ToString();
-                row.Tag = weapon; // Store reference for editing
+                row.Tag = weapon;
             }
         }
 
@@ -405,20 +438,22 @@ namespace XBLA_Setup_Editor
             var text = _txtTextId.Text.Trim();
             if (uint.TryParse(text, System.Globalization.NumberStyles.HexNumber, null, out var textIdUpper))
             {
-                // Store as upper 16 bits with lower 16 bits as 0000
                 uint fullTextId = textIdUpper << 16;
                 _parser.SelectList[_selectedSetIndex].TextId = fullTextId;
                 Log($"Text ID for {MPWeaponSetParser.SelectListNames[_selectedSetIndex]} changed to 0x{fullTextId:X8}");
             }
             else
             {
-                // Revert to current value if invalid
                 _txtTextId.Text = (_parser.SelectList[_selectedSetIndex].TextId >> 16).ToString("X4");
             }
         }
 
         private void OnWeaponCellChanged(object? sender, DataGridViewCellEventArgs e)
         {
+            // Prevent re-entrant CellValueChanged caused by our own beginner autofill writes
+            if (_isApplyingBeginnerDefaults)
+                return;
+
             if (_parser == null || _selectedSetIndex < 0 || e.RowIndex < 0)
                 return;
 
@@ -435,24 +470,42 @@ namespace XBLA_Setup_Editor
                 switch (colName)
                 {
                     case "Weapon":
-                        weapon.WeaponId = (byte)GetCodeByName(WeaponData.Pairs, row.Cells["Weapon"].Value?.ToString() ?? "");
-                        // Apply beginner defaults when weapon changes
+                        weapon.WeaponId = (byte)GetCodeByName(
+                            WeaponData.Pairs,
+                            row.Cells["Weapon"].Value?.ToString() ?? ""
+                        );
+
                         if (_beginnerMode)
-                            ApplyBeginnerDefaultsToRow(row, weapon);
+                        {
+                            _isApplyingBeginnerDefaults = true;
+                            try
+                            {
+                                ApplyBeginnerDefaultsToRow(row, weapon);
+                            }
+                            finally
+                            {
+                                _isApplyingBeginnerDefaults = false;
+                            }
+                        }
                         break;
+
                     case "AmmoType":
                         weapon.AmmoType = (byte)GetCodeByName(AmmoTypeData.Pairs, row.Cells["AmmoType"].Value?.ToString() ?? "");
                         break;
+
                     case "AmmoCount":
                         if (byte.TryParse(row.Cells["AmmoCount"].Value?.ToString(), out var ammo))
                             weapon.AmmoCount = ammo;
                         break;
+
                     case "HasProp":
                         weapon.WeaponToggle = (bool)(row.Cells["HasProp"].Value ?? false) ? (byte)1 : (byte)0;
                         break;
+
                     case "Prop":
                         weapon.PropId = (byte)GetCodeByName(PropData.Pairs, row.Cells["Prop"].Value?.ToString() ?? "");
                         break;
+
                     case "Scale":
                         if (byte.TryParse(row.Cells["Scale"].Value?.ToString(), out var scale))
                             weapon.Scale = scale;
@@ -465,76 +518,71 @@ namespace XBLA_Setup_Editor
             }
         }
 
+        // Beginner Mode: use BeginnerRulesData (strings must match AmmoTypeData/PropData names)
         private void ApplyBeginnerDefaultsToRow(DataGridViewRow row, MPWeaponSetParser.WeaponEntry weapon)
         {
             var weaponName = row.Cells["Weapon"].Value?.ToString() ?? "";
-            if (string.IsNullOrWhiteSpace(weaponName) || weaponName == "None")
+            if (string.IsNullOrWhiteSpace(weaponName))
                 return;
 
-            // Auto-fill ammo type based on weapon
-            var ammoName = GetDefaultAmmoType(weaponName);
-            row.Cells["AmmoType"].Value = ammoName;
-            weapon.AmmoType = (byte)GetCodeByName(AmmoTypeData.Pairs, ammoName);
+            // --- Ammo Type (from BeginnerRulesData) ---
+            var ammoTypeName = GetBeginnerAmmoTypeName(weaponName); // e.g. "9mm Ammo"
+            EnsureComboBoxContains((DataGridViewComboBoxColumn)_dgvWeapons.Columns["AmmoType"], ammoTypeName);
 
-            // Auto-fill prop if weapon typically has one
-            if (WeaponHasDefaultProp(weaponName))
+            row.Cells["AmmoType"].Value = ammoTypeName;
+            weapon.AmmoType = (byte)GetCodeByName(AmmoTypeData.Pairs, ammoTypeName);
+
+            // --- Ammo Count (from BeginnerRulesData) ---
+            var ammoCountText = GetBeginnerDefaultAmmoCount(weaponName); // e.g. "50"
+            row.Cells["AmmoCount"].Value = ammoCountText;
+
+            if (byte.TryParse(ammoCountText, out var ammoCount))
+                weapon.AmmoCount = ammoCount;
+
+            // --- Prop defaults ---
+            bool shouldHaveProp =
+                BeginnerRulesData.PropNames.Contains(weaponName) &&
+                !weaponName.Equals("Nothing (No Pickup)", StringComparison.OrdinalIgnoreCase) &&
+                !weaponName.Equals("Unarmed", StringComparison.OrdinalIgnoreCase);
+
+            if (shouldHaveProp)
             {
                 row.Cells["HasProp"].Value = true;
                 weapon.WeaponToggle = 1;
 
-                var propName = GetDefaultProp(weaponName);
+                var propName = weaponName;
+                EnsureComboBoxContains((DataGridViewComboBoxColumn)_dgvWeapons.Columns["Prop"], propName);
+
                 row.Cells["Prop"].Value = propName;
                 weapon.PropId = (byte)GetCodeByName(PropData.Pairs, propName);
             }
-        }
-
-        private static string GetDefaultAmmoType(string weaponName)
-        {
-            // Map weapons to their typical ammo types
-            return weaponName switch
+            else
             {
-                _ when weaponName.Contains("PP7") || weaponName.Contains("Walther") => "9mm",
-                _ when weaponName.Contains("DD44") || weaponName.Contains("Makarov") => "9mm",
-                _ when weaponName.Contains("KF7") || weaponName.Contains("Soviet") => "7.62mm",
-                _ when weaponName.Contains("ZMG") => "9mm 2x",
-                _ when weaponName.Contains("D5K") || weaponName.Contains("Deutsche") => "9mm 2x",
-                _ when weaponName.Contains("Phantom") => "9mm 2x",
-                _ when weaponName.Contains("AR33") || weaponName.Contains("Assault") => "5.56mm",
-                _ when weaponName.Contains("RC-P90") => "9mm 2x",
-                _ when weaponName.Contains("Shotgun") => "Shotgun",
-                _ when weaponName.Contains("Automatic") => "Shotgun 2x",
-                _ when weaponName.Contains("Sniper") => "7.62mm",
-                _ when weaponName.Contains("Cougar") => ".357",
-                _ when weaponName.Contains("Golden") => "Magnum",
-                _ when weaponName.Contains("Magnum") => ".357",
-                _ when weaponName.Contains("Laser") => "Unlimited",
-                _ when weaponName.Contains("Grenade") && weaponName.Contains("Launcher") => "Grenades",
-                _ when weaponName.Contains("Rocket") => "Rockets",
-                _ when weaponName.Contains("Taser") => "Unlimited",
-                _ when weaponName.Contains("Grenade") => "Grenades",
-                _ when weaponName.Contains("Remote Mine") => "Remote Mines",
-                _ when weaponName.Contains("Proximity Mine") => "Proximity Mines",
-                _ when weaponName.Contains("Timed Mine") => "Timed Mines",
-                _ when weaponName.Contains("Knife") => "Unlimited",
-                _ when weaponName.Contains("Throwing") => "Throwing Knives",
-                _ => "None"
-            };
+                row.Cells["HasProp"].Value = false;
+                weapon.WeaponToggle = 0;
+
+                const string noneProp = "None";
+                EnsureComboBoxContains((DataGridViewComboBoxColumn)_dgvWeapons.Columns["Prop"], noneProp);
+
+                row.Cells["Prop"].Value = noneProp;
+                weapon.PropId = (byte)GetCodeByName(PropData.Pairs, noneProp);
+            }
         }
 
-        private static bool WeaponHasDefaultProp(string weaponName)
+        private static string GetBeginnerAmmoTypeName(string weaponName)
         {
-            // Most weapons should have props
-            return !weaponName.Contains("Grenade") &&
-                   !weaponName.Contains("Mine") &&
-                   !weaponName.Contains("Knife") &&
-                   weaponName != "None";
+            if (BeginnerRulesData.WeaponToAmmoType.TryGetValue(weaponName, out var ammoType))
+                return ammoType;
+
+            return "None";
         }
 
-        private static string GetDefaultProp(string weaponName)
+        private static string GetBeginnerDefaultAmmoCount(string weaponName)
         {
-            // Try to match weapon name to prop name
-            // In most cases, the prop name matches the weapon name
-            return weaponName;
+            if (BeginnerRulesData.WeaponToDefaultAmmoCount.TryGetValue(weaponName, out var count))
+                return count;
+
+            return "0";
         }
 
         private void SaveXex()
@@ -562,38 +610,45 @@ namespace XBLA_Setup_Editor
                 foreach (var line in log)
                     Log(line);
 
-                // NEW: Armor removal if checkbox is checked
+                // Patch 3-char custom text folder code at 0x0000A3AC
+                Log("");
+                var folderLog = new List<string>();
+                ApplyTextFolderPatch(_xexData, _txtTextFolder3.Text, folderLog);
+                foreach (var line in folderLog)
+                    Log(line);
+
+                // Armor removal
                 if (_chkRemoveArmor.Checked)
                 {
                     Log("");
                     Log("=== Armor Removal ===");
-                    
+
                     var armorLog = new List<string>();
                     var scanResult = XEXArmorRemover.ScanForArmor(_xexData, armorLog);
-                    
+
                     foreach (var line in armorLog)
                         Log(line);
-                    
+
                     if (scanResult.ArmorBlocks.Count > 0)
                     {
                         var result = MessageBox.Show(this,
-                            $"Found {scanResult.ArmorBlocks.Count} armor blocks ({scanResult.TotalArmorSize:N0} bytes).\n\n" +
-                            $"NOP (zero out) armor blocks in XEX?\n\n" +
-                            $"Method: Overwrite armor with 0x00 bytes\n" +
+                            $"Found {scanResult.ArmorBlocks.Count} armor objects ({scanResult.TotalArmorSize:N0} bytes).\n\n" +
+                            $"NOP (zero out) armor objects in XEX?\n\n" +
+                            $"Method: Overwrite each 0x{XEXArmorRemover.ARMOR_RECORD_SIZE:X} record with 0x00 bytes\n" +
                             $"File size: {_xexData.Length:N0} bytes (unchanged)\n" +
-                            $"Armor blocks: {scanResult.ArmorBlocks.Count}",
+                            $"Armor objects: {scanResult.ArmorBlocks.Count}",
                             "Confirm Armor Removal",
                             MessageBoxButtons.YesNo,
                             MessageBoxIcon.Question);
-                        
+
                         if (result == DialogResult.Yes)
                         {
                             var removalLog = new List<string>();
                             _xexData = XEXArmorRemover.RemoveArmor(_xexData, scanResult, removalLog);
-                            
+
                             foreach (var line in removalLog)
                                 Log(line);
-                            
+
                             Log("");
                             Log("✓ Armor removal complete!");
                         }
@@ -604,11 +659,10 @@ namespace XBLA_Setup_Editor
                     }
                     else
                     {
-                        Log("No armor blocks found.");
+                        Log("No armor objects found.");
                     }
                 }
 
-                // Save
                 File.WriteAllBytes(_xexPath, _xexData);
                 Log($"Saved: {_xexPath}");
                 Log($"Final size: {_xexData.Length:N0} bytes");
@@ -652,6 +706,70 @@ namespace XBLA_Setup_Editor
                 return code;
 
             return 0;
+        }
+
+        // =========================
+        // Text folder patch helpers
+        // =========================
+
+        private static string ReadTextFolderCode(byte[] xexData)
+        {
+            if (xexData == null || xexData.Length < TEXT_FOLDER_OFFSET + TEXT_FOLDER_LEN)
+                return "";
+
+            char[] chars = new char[TEXT_FOLDER_LEN];
+            for (int i = 0; i < TEXT_FOLDER_LEN; i++)
+            {
+                byte b = xexData[TEXT_FOLDER_OFFSET + i];
+                chars[i] = (b >= 0x20 && b <= 0x7E) ? (char)b : '?';
+            }
+            return new string(chars);
+        }
+
+        private static void ApplyTextFolderPatch(byte[] xexData, string? folder3, List<string> log)
+        {
+            log.Add("=== Text Folder Patch ===");
+            log.Add($"Offset: 0x{TEXT_FOLDER_OFFSET:X6} (len {TEXT_FOLDER_LEN})");
+
+            if (xexData == null)
+            {
+                log.Add("ERROR: XEX data is null.");
+                return;
+            }
+
+            if (xexData.Length < TEXT_FOLDER_OFFSET + TEXT_FOLDER_LEN)
+            {
+                log.Add($"ERROR: XEX too small to patch text folder (size {xexData.Length:N0}).");
+                return;
+            }
+
+            folder3 = (folder3 ?? "").Trim().ToUpperInvariant();
+
+            if (folder3.Length != TEXT_FOLDER_LEN)
+            {
+                log.Add($"ERROR: Folder code must be exactly {TEXT_FOLDER_LEN} characters.");
+                log.Add($"Current input: \"{folder3}\" (len {folder3.Length})");
+                return;
+            }
+
+            for (int i = 0; i < folder3.Length; i++)
+            {
+                char c = folder3[i];
+                if (c < 0x20 || c > 0x7E)
+                {
+                    log.Add("ERROR: Folder code must be ASCII printable characters.");
+                    return;
+                }
+            }
+
+            string before = ReadTextFolderCode(xexData);
+            log.Add($"Before: \"{before}\"");
+            log.Add($"After : \"{folder3}\"");
+
+            for (int i = 0; i < TEXT_FOLDER_LEN; i++)
+                xexData[TEXT_FOLDER_OFFSET + i] = (byte)folder3[i];
+
+            log.Add("Patched text folder code successfully.");
         }
     }
 }
