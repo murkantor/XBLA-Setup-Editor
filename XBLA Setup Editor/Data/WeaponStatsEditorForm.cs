@@ -170,7 +170,9 @@ namespace XBLA_Setup_Editor
             AddColumn(_dgvWeaponStats, "WeaponAimLockOnSpeed", "Lock-On Spd", 85);
             AddColumn(_dgvWeaponStats, "Sway", "Sway", 55);
             // Recoil
-            AddColumn(_dgvWeaponStats, "RecoilSpeed", "Recoil Spd", 75);
+            // NOTE: RecoilSpeed (offset 0x44-0x47) removed from UI - contains timing bytes, not a float!
+            // This field controls fire rate and should NOT be editable in UI
+            // The bytes are automatically preserved during import/export
             AddColumn(_dgvWeaponStats, "RecoilBackward", "Recoil Back", 80);
             AddColumn(_dgvWeaponStats, "RecoilUpward", "Recoil Up", 75);
             AddColumn(_dgvWeaponStats, "RecoilBolt", "Recoil Bolt", 75);
@@ -309,9 +311,18 @@ namespace XBLA_Setup_Editor
                 Log($"21990 size: {data21990.Length:N0} bytes");
 
                 // Parse 21990 with selected layout
-                _parser = useXblaLayout
-                    ? WeaponStatsParser.LoadFrom21990WithXblaLayout(data21990)
-                    : WeaponStatsParser.LoadFrom21990(data21990);
+                // When "Use XBLA Layout" is checked, the 21990 file has XBLA field positions
+                // When unchecked, it has N64 field positions and needs conversion
+                if (useXblaLayout)
+                {
+                    Log("  -> Using XBLA field layout parser (FromBytes)");
+                    _parser = WeaponStatsParser.LoadFrom21990WithXblaLayout(data21990);
+                }
+                else
+                {
+                    Log("  -> Using N64 field layout parser (FromN64Bytes) with conversion");
+                    _parser = WeaponStatsParser.LoadFrom21990(data21990);
+                }
 
                 Log($"Imported {_parser.WeaponStats.Count} weapon stats entries {(useXblaLayout ? "(XBLA layout)" : "(N64 -> XBLA converted)")}");
                 Log($"Imported {_parser.WeaponModels.Count} weapon model entries");
@@ -378,7 +389,8 @@ namespace XBLA_Setup_Editor
                         Log($"  CrosshairSpd:    {imp.CrosshairSpeed,10:F4} vs {orig.CrosshairSpeed,10:F4}  (0x38)");
                         Log($"  AimLockOnSpd:    {imp.WeaponAimLockOnSpeed,10:F4} vs {orig.WeaponAimLockOnSpeed,10:F4}  (0x3C)");
                         Log($"  Sway:            {imp.Sway,10:F4} vs {orig.Sway,10:F4}  (0x40)");
-                        Log($"  RecoilSpeed:     {imp.RecoilSpeed,10:F4} vs {orig.RecoilSpeed,10:F4}  (0x44)");
+                        // Show RecoilSpeed bytes in hex for debugging
+                        Log($"  RecoilSpeedBytes: [{imp.RecoilSpeedByte0:X2} {imp.RecoilSpeedByte1:X2} {imp.RecoilSpeedByte2:X2} {imp.RecoilSpeedByte3:X2}] vs [{orig.RecoilSpeedByte0:X2} {orig.RecoilSpeedByte1:X2} {orig.RecoilSpeedByte2:X2} {orig.RecoilSpeedByte3:X2}]  (0x44)");
                         Log($"  RecoilBackward:  {imp.RecoilBackward,10:F4} vs {orig.RecoilBackward,10:F4}  (0x48)");
                         Log($"  RecoilUpward:    {imp.RecoilUpward,10:F4} vs {orig.RecoilUpward,10:F4}  (0x4C)");
                         Log($"  RecoilBolt:      {imp.RecoilBolt,10:F4} vs {orig.RecoilBolt,10:F4}  (0x50)");
@@ -436,8 +448,7 @@ namespace XBLA_Setup_Editor
                 row.Cells["CrosshairSpeed"].Value = entry.CrosshairSpeed.ToString("F4");
                 row.Cells["WeaponAimLockOnSpeed"].Value = entry.WeaponAimLockOnSpeed.ToString("F4");
                 row.Cells["Sway"].Value = entry.Sway.ToString("F4");
-                // Recoil
-                row.Cells["RecoilSpeed"].Value = entry.RecoilSpeed.ToString("F4");
+                // Recoil - NOTE: RecoilSpeed column removed, bytes preserved automatically
                 row.Cells["RecoilBackward"].Value = entry.RecoilBackward.ToString("F4");
                 row.Cells["RecoilUpward"].Value = entry.RecoilUpward.ToString("F4");
                 row.Cells["RecoilBolt"].Value = entry.RecoilBolt.ToString("F4");
@@ -563,10 +574,7 @@ namespace XBLA_Setup_Editor
                     case "Sway":
                         if (float.TryParse(value, out var sway)) entry.Sway = sway;
                         break;
-                    // Recoil
-                    case "RecoilSpeed":
-                        if (float.TryParse(value, out var recoilSpd)) entry.RecoilSpeed = recoilSpd;
-                        break;
+                    // Recoil - NOTE: RecoilSpeed case removed, timing bytes preserved automatically
                     case "RecoilBackward":
                         if (float.TryParse(value, out var recoilBack)) entry.RecoilBackward = recoilBack;
                         break;

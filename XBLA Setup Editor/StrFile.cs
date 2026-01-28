@@ -236,17 +236,6 @@ namespace XBLA_Setup_Editor
             return p;
         }
 
-        private static int[] ExtractOffsetsFromTable(byte[] b, int tableStart, int terminatorPos)
-        {
-            var list = new List<int>();
-            for (int p = tableStart; p < terminatorPos; p += 6)
-            {
-                ushort offDiv2 = ReadU16BE(b, p + 4);
-                list.Add(offDiv2 * 2);
-            }
-            return list.ToArray();
-        }
-
         private static int FindTextEndNoPadding(byte[] b, int textStart, int[] entryByteOffsets)
         {
             if (entryByteOffsets.Length == 0) return textStart;

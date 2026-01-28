@@ -72,7 +72,42 @@ namespace XBLA_Setup_Editor
             public float CrosshairSpeed { get; set; }            // 0x38
             public float WeaponAimLockOnSpeed { get; set; }      // 0x3C
             public float Sway { get; set; }                      // 0x40
-            public float RecoilSpeed { get; set; }               // 0x44
+
+            // 0x44-0x47: RecoilSpeed - NOT A FLOAT! Contains timing/frame delay bytes
+            public byte RecoilSpeedByte0 { get; set; }           // 0x44 - Fire rate timing byte 0
+            public byte RecoilSpeedByte1 { get; set; }           // 0x45 - Fire rate timing byte 1
+            public byte RecoilSpeedByte2 { get; set; }           // 0x46 - Fire rate timing byte 2
+            public byte RecoilSpeedByte3 { get; set; }           // 0x47 - Fire rate timing byte 3
+
+            /// <summary>
+            /// Backward compatibility property - RecoilSpeed exposed as float for UI compatibility.
+            /// WARNING: This field contains 4 bytes of timing data, NOT a proper IEEE float!
+            /// Setting this will reinterpret the float bits as raw bytes to preserve timing data.
+            /// DO NOT perform mathematical operations on this value - it will produce incorrect results.
+            /// </summary>
+            public float RecoilSpeed
+            {
+                get
+                {
+                    // Pack the 4 bytes and reinterpret as float (for UI compatibility)
+                    byte[] bytes = new byte[] { RecoilSpeedByte0, RecoilSpeedByte1, RecoilSpeedByte2, RecoilSpeedByte3 };
+                    if (BitConverter.IsLittleEndian)
+                        Array.Reverse(bytes);
+                    return BitConverter.ToSingle(bytes, 0);
+                }
+                set
+                {
+                    // Reinterpret float bits as raw bytes (preserves timing data)
+                    byte[] bytes = BitConverter.GetBytes(value);
+                    if (BitConverter.IsLittleEndian)
+                        Array.Reverse(bytes);
+                    RecoilSpeedByte0 = bytes[0];
+                    RecoilSpeedByte1 = bytes[1];
+                    RecoilSpeedByte2 = bytes[2];
+                    RecoilSpeedByte3 = bytes[3];
+                }
+            }
+
             public float RecoilBackward { get; set; }            // 0x48
             public float RecoilUpward { get; set; }              // 0x4C
             public float RecoilBolt { get; set; }                // 0x50
@@ -111,7 +146,13 @@ namespace XBLA_Setup_Editor
                 WriteFloatBE(data, 0x38, CrosshairSpeed);
                 WriteFloatBE(data, 0x3C, WeaponAimLockOnSpeed);
                 WriteFloatBE(data, 0x40, Sway);
-                WriteFloatBE(data, 0x44, RecoilSpeed);
+
+                // Write RecoilSpeed as raw bytes (NOT as float)
+                data[0x44] = RecoilSpeedByte0;
+                data[0x45] = RecoilSpeedByte1;
+                data[0x46] = RecoilSpeedByte2;
+                data[0x47] = RecoilSpeedByte3;
+
                 WriteFloatBE(data, 0x48, RecoilBackward);
                 WriteFloatBE(data, 0x4C, RecoilUpward);
                 WriteFloatBE(data, 0x50, RecoilBolt);
@@ -153,7 +194,13 @@ namespace XBLA_Setup_Editor
                     CrosshairSpeed = ReadFloatBE(data, offset + 0x38),
                     WeaponAimLockOnSpeed = ReadFloatBE(data, offset + 0x3C),
                     Sway = ReadFloatBE(data, offset + 0x40),
-                    RecoilSpeed = ReadFloatBE(data, offset + 0x44),
+
+                    // Read RecoilSpeed as raw bytes (NOT as float)
+                    RecoilSpeedByte0 = data[offset + 0x44],
+                    RecoilSpeedByte1 = data[offset + 0x45],
+                    RecoilSpeedByte2 = data[offset + 0x46],
+                    RecoilSpeedByte3 = data[offset + 0x47],
+
                     RecoilBackward = ReadFloatBE(data, offset + 0x48),
                     RecoilUpward = ReadFloatBE(data, offset + 0x4C),
                     RecoilBolt = ReadFloatBE(data, offset + 0x50),
@@ -198,10 +245,10 @@ namespace XBLA_Setup_Editor
                 // 0x38: crosshair_speed (float) -> CrosshairSpeed
                 // 0x3C: weapon_aim_speed (float) -> WeaponAimLockOnSpeed
                 // 0x40: muzzle_flash_ext (float) -> MuzzleFlashExtension
-                // 0x44-0x47: recoil_speed_bytes[4] -> RecoilBolt (interpret as bytes)
+                // 0x44-0x47: recoil_speed_bytes[4] -> RecoilSpeedBytes (as raw bytes, NOT float)
                 // 0x48: aim_shifts_up (float) -> AimUpwardShift
                 // 0x4C: recoil_up (float) -> RecoilUpward
-                // 0x50: recoil_speed_float (float) -> RecoilSpeed
+                // 0x50: recoil_speed_float (float) -> RecoilSpeed (DEPRECATED - using bytes at 0x44 instead)
                 // 0x54: sway (float) -> Sway
                 // 0x58: volume_to_ai_max (float) -> VolumeToAIMultipleShots
                 // 0x5C: unknown_5c (float) -> VolumeToAIActiveFire
@@ -236,10 +283,17 @@ namespace XBLA_Setup_Editor
                     CrosshairSpeed = ReadFloatBE(data, offset + 0x38),      // N64 crosshair_speed
                     WeaponAimLockOnSpeed = ReadFloatBE(data, offset + 0x3C),// N64 weapon_aim_speed
                     MuzzleFlashExtension = ReadFloatBE(data, offset + 0x40),// N64 muzzle_flash_ext
-                    RecoilBolt = ReadFloatBE(data, offset + 0x44),          // N64 recoil_speed_bytes (as float)
+
+                    // Read RecoilSpeed as raw bytes from N64 (NOT as float)
+                    RecoilSpeedByte0 = data[offset + 0x44],
+                    RecoilSpeedByte1 = data[offset + 0x45],
+                    RecoilSpeedByte2 = data[offset + 0x46],
+                    RecoilSpeedByte3 = data[offset + 0x47],
+
                     AimUpwardShift = ReadFloatBE(data, offset + 0x48),      // N64 aim_shifts_up
                     RecoilUpward = ReadFloatBE(data, offset + 0x4C),        // N64 recoil_up
-                    RecoilSpeed = ReadFloatBE(data, offset + 0x50),         // N64 recoil_speed_float
+                    // Skip 0x50 (N64 recoil_speed_float) - we use the bytes at 0x44 instead
+                    RecoilBolt = ReadFloatBE(data, offset + 0x50),          // N64 recoil_speed_float (or could be RecoilBolt)
                     Sway = ReadFloatBE(data, offset + 0x54),                // N64 sway
                     VolumeToAIMultipleShots = ReadFloatBE(data, offset + 0x58), // N64 volume_to_ai_max
                     VolumeToAIActiveFire = ReadFloatBE(data, offset + 0x5C),// N64 unknown_5c

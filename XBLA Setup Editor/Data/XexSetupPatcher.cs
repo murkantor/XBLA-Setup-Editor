@@ -312,7 +312,7 @@ namespace XBLA_Setup_Editor
                 var analysis = XexExtender.Analyze(xex); if (!analysis.IsValid) throw new InvalidOperationException(analysis.Error);
                 byte[] extensionData = new byte[extensionSize];
                 var (extendedXex, extResult) = XexExtender.Extend(xex, extensionData, recalculateSha1: false);
-                if (!extResult.Success) throw new InvalidOperationException(extResult.Error);
+                if (!extResult.Success || extendedXex == null) throw new InvalidOperationException(extResult.Error ?? "Extension failed");
                 xex = extendedXex;
             }
 
@@ -635,6 +635,6 @@ namespace XBLA_Setup_Editor
                 out applyReport2);
         }
 
-        private class MenuEntryInfo { public uint LevelId; public string Name = ""; public ushort FolderTextId; public ushort IconTextId; }
+        private sealed class MenuEntryInfo { public uint LevelId; public string Name = ""; }
     }
 }
