@@ -73,12 +73,12 @@ namespace XBLA_Setup_Editor
         // Standard Fog Ratios
         private static readonly Dictionary<uint, (float FarRatio, float NearRatio)> XblaFogRatios = new()
         {
-            { 0x09, (1.0f, 1.0f) }, { 0x14, (1.0f, 1.0f) }, { 0x16, (1.0f, 1.0f) }, { 0x17, (3.0f, 3.0f) },
-            { 0x18, (2.0f, 2.0f) }, { 0x19, (2.5f, 2.5f) }, { 0x1A, (1.0f, 1.0f) }, { 0x1B, (3.0f, 3.0f) },
-            { 0x1C, (1.0f, 1.0f) }, { 0x1D, (1.0f, 1.0f) }, { 0x1E, (2.5f, 2.5f) }, { 0x1F, (1.0f, 1.0f) },
-            { 0x20, (1.0f, 1.0f) }, { 0x21, (1.0f, 1.0f) }, { 0x22, (1.0f, 1.0f) }, { 0x23, (1.5f, 1.75f) },
-            { 0x24, (2.0f, 3.0f) }, { 0x25, (1.5f, 1.8f) }, { 0x26, (1.0f, 1.0f) }, { 0x27, (1.0f, 1.0f) },
-            { 0x28, (1.0f, 1.0f) }, { 0x29, (1.0f, 1.5f) }, { 0x2B, (2.5f, 2.0f) }, { 0x2D, (1.0f, 1.0f) },
+            { 0x09, (1.0f, 1.0f) }, { 0x14, (1.0f, 1.0f) }, { 0x16, (1.0f, 1.0f) }, { 0x17, (0.5f, 0.5f) },
+            { 0x18, (0.1f, 0.2f) }, { 0x19, (0.9f, 1.1f) }, { 0x1A, (1.0f, 1.0f) }, { 0x1B, (0.4f, 0.4f) },
+            { 0x1C, (3.0f, 3.0f) }, { 0x1D, (1.0f, 1.0f) }, { 0x1E, (0.2f, 0.2f) }, { 0x1F, (1.0f, 1.0f) },
+            { 0x20, (1.0f, 1.0f) }, { 0x21, (1.0f, 1.0f) }, { 0x22, (1.0f, 1.0f) }, { 0x23, (2.2f, 2.7f) },
+            { 0x24, (1.2f, 1.7f) }, { 0x25, (0.4f, 0.5f) }, { 0x26, (1.0f, 1.0f) }, { 0x27, (1.0f, 1.0f) },
+            { 0x28, (1.0f, 1.0f) }, { 0x29, (4.0f, 4.5f) }, { 0x2B, (1.55f, 0.65f) }, { 0x2D, (1.0f, 1.0f) },
             { 0x2E, (1.0f, 1.0f) }, { 0x30, (1.0f, 1.0f) }, { 0x32, (1.0f, 1.0f) }, { 0x36, (1.5f, 1.8f) },
         };
 
@@ -165,6 +165,7 @@ namespace XBLA_Setup_Editor
 
         // --- LOADING ---
         public static File21990Parser Load(string path) { var p = new File21990Parser { FilePath = path, RawData = File.ReadAllBytes(path) }; p.Parse(); return p; }
+        public static File21990Parser Load(byte[] data) { var p = new File21990Parser { FilePath = "(loaded from memory)", RawData = data }; p.Parse(); return p; }
         private void Parse() { ScanForMenuEntries(); ParseSkyEntries(); ParseMusicEntries(); }
 
         private void ScanForMenuEntries()

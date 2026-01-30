@@ -9,7 +9,7 @@ namespace XBLA_Setup_Editor
         static void Main()
         {
             ApplicationConfiguration.Initialize();
-            Application.Run(new ToolLauncherForm());
+            Application.Run(new MainForm());
         }
     }
 }
