@@ -13,6 +13,7 @@ namespace XBLA_Setup_Editor
     {
         // XEX State
         private byte[]? _sharedXexData;
+        private byte[]? _originalXexData;  // Original unmodified XEX for xdelta patches
         private string? _sharedXexPath;
         private bool _isModified;
 
@@ -50,6 +51,22 @@ namespace XBLA_Setup_Editor
             Height = 900;
             StartPosition = FormStartPosition.CenterScreen;
             MinimumSize = new Size(1000, 700);
+
+            // Secret credits button in upper right corner
+            var btnCredits = new Button
+            {
+                Text = "",
+                Size = new Size(16, 16),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(240, 240, 240),
+                Cursor = Cursors.Hand
+            };
+            btnCredits.FlatAppearance.BorderSize = 0;
+            btnCredits.Location = new Point(ClientSize.Width - btnCredits.Width - 4, 4);
+            btnCredits.Click += (_, __) => ShowCredits();
+            Controls.Add(btnCredits);
+            btnCredits.BringToFront();
 
             var mainLayout = new TableLayoutPanel
             {
@@ -335,6 +352,7 @@ namespace XBLA_Setup_Editor
                 }
 
                 _sharedXexData = File.ReadAllBytes(path);
+                _originalXexData = (byte[])_sharedXexData.Clone();  // Keep original for xdelta patches
                 _sharedXexPath = path;
                 _isModified = false;
 
@@ -390,6 +408,12 @@ namespace XBLA_Setup_Editor
 
                 MessageBox.Show(this, $"XEX saved successfully!\n\n{sfd.FileName}",
                     "Save XEX", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                // Offer to create xdelta patch
+                if (_originalXexData != null)
+                {
+                    XdeltaHelper.OfferCreatePatch(this, _originalXexData, sfd.FileName);
+                }
             }
             catch (Exception ex)
             {
@@ -465,9 +489,62 @@ namespace XBLA_Setup_Editor
         public byte[]? GetXexData() => _sharedXexData;
 
         /// <summary>
+        /// Gets the original unmodified XEX data (for xdelta patches).
+        /// </summary>
+        public byte[]? GetOriginalXexData() => _originalXexData;
+
+        /// <summary>
         /// Gets the path of the currently loaded XEX.
         /// </summary>
         public string? GetXexPath() => _sharedXexPath;
+
+        private void ShowCredits()
+        {
+            var creditsForm = new Form
+            {
+                Text = "Credits & Thanks",
+                Width = 400,
+                Height = 350,
+                StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false,
+                MinimizeBox = false
+            };
+
+            var txtCredits = new TextBox
+            {
+                Multiline = true,
+                ReadOnly = true,
+                ScrollBars = ScrollBars.Vertical,
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 10),
+                BackColor = Color.White,
+                Text =
+                    "XBLA Setup Editor\r\n" +
+                    "=================\r\n\r\n" +
+                    "SPECIAL THANKS\r\n" +
+                    "--------------\r\n\r\n" +
+                    "TODO: Add names here\r\n\r\n" +
+                    "SHOUTOUTS\r\n" +
+                    "---------\r\n\r\n" +
+                    "TODO: Add shoutouts here\r\n\r\n" +
+                    "TOOLS & RESOURCES\r\n" +
+                    "-----------------\r\n\r\n" +
+                    "TODO: Add tools/resources here\r\n"
+            };
+
+            var btnClose = new Button
+            {
+                Text = "Close",
+                Dock = DockStyle.Bottom,
+                Height = 32
+            };
+            btnClose.Click += (_, __) => creditsForm.Close();
+
+            creditsForm.Controls.Add(txtCredits);
+            creditsForm.Controls.Add(btnClose);
+            creditsForm.ShowDialog(this);
+        }
 
         private void UpdateStatus(string message)
         {
@@ -475,23 +552,32 @@ namespace XBLA_Setup_Editor
             _lblStatus.ForeColor = _isModified ? Color.DarkOrange : Color.Black;
         }
 
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+
+            const string disclaimer =
+                "USAGE AGREEMENT\n\n" +
+                "By using this tool, you agree to the following:\n\n" +
+                "1. Do not convert, distribute, or upload setups or mods created by others without their explicit permission.\n\n" +
+                "2. Do not claim another creator's work as your own.\n\n" +
+                "3. Always credit the original creator when sharing or building upon their work.\n\n" +
+                "Respect the modding community and the effort creators put into their work.";
+
+            var result = MessageBox.Show(this,
+                disclaimer,
+                "Usage Agreement",
+                MessageBoxButtons.OKCancel,
+                MessageBoxIcon.Information);
+
+            if (result != DialogResult.OK)
+            {
+                Close();
+            }
+        }
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            if (_isModified)
-            {
-                var result = MessageBox.Show(this,
-                    "You have unsaved changes. Exit anyway?",
-                    "Unsaved Changes",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Question);
-
-                if (result != DialogResult.Yes)
-                {
-                    e.Cancel = true;
-                    return;
-                }
-            }
-
             base.OnFormClosing(e);
         }
     }

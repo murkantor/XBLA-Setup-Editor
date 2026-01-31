@@ -5,6 +5,7 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using XBLA_Setup_Editor;
 
 namespace XBLA_Setup_Editor.Controls
 {
@@ -450,6 +451,14 @@ namespace XBLA_Setup_Editor.Controls
                         combined.Add($"=== APPLY #2: {Path.GetFileName(outXex2)} ===");
                         combined.AddRange(a2);
                         ShowReport("Split Report", combined);
+
+                        // Offer to create xdelta patches for split XEX files
+                        var mainForm = FindForm() as MainForm;
+                        var originalData = mainForm?.GetOriginalXexData();
+                        if (originalData != null)
+                        {
+                            XdeltaHelper.OfferCreateSplitPatches(FindForm()!, originalData, outXex1, outXex2);
+                        }
                     }
                     finally
                     {

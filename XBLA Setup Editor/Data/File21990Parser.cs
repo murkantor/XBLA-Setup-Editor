@@ -73,12 +73,12 @@ namespace XBLA_Setup_Editor
         // Standard Fog Ratios
         private static readonly Dictionary<uint, (float FarRatio, float NearRatio)> XblaFogRatios = new()
         {
-            { 0x09, (1.0f, 1.0f) }, { 0x14, (1.0f, 1.0f) }, { 0x16, (1.0f, 1.0f) }, { 0x17, (0.5f, 0.5f) },
-            { 0x18, (0.1f, 0.2f) }, { 0x19, (0.9f, 1.1f) }, { 0x1A, (1.0f, 1.0f) }, { 0x1B, (0.4f, 0.4f) },
-            { 0x1C, (3.0f, 3.0f) }, { 0x1D, (1.0f, 1.0f) }, { 0x1E, (0.2f, 0.2f) }, { 0x1F, (1.0f, 1.0f) },
-            { 0x20, (1.0f, 1.0f) }, { 0x21, (1.0f, 1.0f) }, { 0x22, (1.0f, 1.0f) }, { 0x23, (2.2f, 2.7f) },
-            { 0x24, (1.2f, 1.7f) }, { 0x25, (0.4f, 0.5f) }, { 0x26, (1.0f, 1.0f) }, { 0x27, (1.0f, 1.0f) },
-            { 0x28, (1.0f, 1.0f) }, { 0x29, (4.0f, 4.5f) }, { 0x2B, (1.55f, 0.65f) }, { 0x2D, (1.0f, 1.0f) },
+            { 0x09, (1.0f, 1.0f) }, { 0x14, (1.0f, 1.0f) }, { 0x16, (1.0f, 1.0f) }, { 0x17, (1.0f, 1.0f) },
+            { 0x18, (0.8f, 0.8f) }, { 0x19, (0.9f, 1.1f) }, { 0x1A, (1.0f, 1.0f) }, { 0x1B, (0.9f, 0.9f) },
+            { 0x1C, (3.0f, 3.0f) }, { 0x1D, (1.0f, 1.0f) }, { 0x1E, (1.3f, 1.5f) }, { 0x1F, (1.0f, 1.0f) },
+            { 0x20, (1.0f, 1.0f) }, { 0x21, (1.0f, 1.0f) }, { 0x22, (1.0f, 1.0f) }, { 0x23, (4.5f, 5.0f) },
+            { 0x24, (2.0f, 3.5f) }, { 0x25, (0.6f, 0.8f) }, { 0x26, (1.0f, 1.0f) }, { 0x27, (1.5f, 1.0f) },
+            { 0x28, (1.0f, 1.0f) }, { 0x29, (2.7f, 3.0f) }, { 0x2B, (0.3f, 0.65f) }, { 0x2D, (1.0f, 1.0f) },
             { 0x2E, (1.0f, 1.0f) }, { 0x30, (1.0f, 1.0f) }, { 0x32, (1.0f, 1.0f) }, { 0x36, (1.5f, 1.8f) },
         };
 
@@ -129,7 +129,7 @@ namespace XBLA_Setup_Editor
         {
             public ushort LevelId, BlendMult, FarFog, NearFog, MaxObjVis, FarObjObfuscDist, FarIntensity, NearIntensity, CloudHeight, WaterHeight;
             public byte SkyColorRed, SkyColorGreen, SkyColorBlue, CloudEnable, Unk16, CloudColorRed, CloudColorGreen, CloudColorBlue, WaterEnable, Unk1B, WaterImgOffset, WaterColorRed, WaterColorGreen, WaterColorBlue, Unk22, Unk23, FogColorRed, FogColorGreen, FogColorBlue, Unk2B;
-            public uint Unk24, Unk2C, Unk30, Unk34;
+            public uint XblaNewNearFog, XblaNewFarFog, Unk30, Unk34;
 
             public static SkyEntryXex FromBytes(byte[] data, int offset)
             {
@@ -142,9 +142,9 @@ namespace XBLA_Setup_Editor
                 s.CloudColorRed = data[offset + 23]; s.CloudColorGreen = data[offset + 24]; s.CloudColorBlue = data[offset + 25];
                 s.WaterEnable = data[offset + 26]; s.Unk1B = data[offset + 27]; s.WaterHeight = ReadU16BE(data, offset + 28);
                 s.WaterImgOffset = data[offset + 30]; s.WaterColorRed = data[offset + 31]; s.WaterColorGreen = data[offset + 32]; s.WaterColorBlue = data[offset + 33];
-                s.Unk22 = data[offset + 34]; s.Unk23 = data[offset + 35]; s.Unk24 = ReadU32BE(data, offset + 36);
+                s.Unk22 = data[offset + 34]; s.Unk23 = data[offset + 35]; s.XblaNewNearFog = ReadU32BE(data, offset + 36);
                 s.FogColorRed = data[offset + 40]; s.FogColorGreen = data[offset + 41]; s.FogColorBlue = data[offset + 42]; s.Unk2B = data[offset + 43];
-                s.Unk2C = ReadU32BE(data, offset + 44); s.Unk30 = ReadU32BE(data, offset + 48); s.Unk34 = ReadU32BE(data, offset + 52);
+                s.XblaNewFarFog = ReadU32BE(data, offset + 44); s.Unk30 = ReadU32BE(data, offset + 48); s.Unk34 = ReadU32BE(data, offset + 52);
                 return s;
             }
             public byte[] ToBytes()
@@ -156,9 +156,9 @@ namespace XBLA_Setup_Editor
                 WriteU16BE(d, 20, CloudHeight); d[22] = Unk16; d[23] = CloudColorRed; d[24] = CloudColorGreen; d[25] = CloudColorBlue;
                 d[26] = WaterEnable; d[27] = Unk1B; WriteU16BE(d, 28, WaterHeight);
                 d[30] = WaterImgOffset; d[31] = WaterColorRed; d[32] = WaterColorGreen; d[33] = WaterColorBlue;
-                d[34] = Unk22; d[35] = Unk23; WriteU32BE(d, 36, Unk24);
+                d[34] = Unk22; d[35] = Unk23; WriteU32BE(d, 36, XblaNewNearFog);
                 d[40] = FogColorRed; d[41] = FogColorGreen; d[42] = FogColorBlue; d[43] = Unk2B;
-                WriteU32BE(d, 44, Unk2C); WriteU32BE(d, 48, Unk30); WriteU32BE(d, 52, Unk34);
+                WriteU32BE(d, 44, XblaNewFarFog); WriteU32BE(d, 48, Unk30); WriteU32BE(d, 52, Unk34);
                 return d;
             }
         }
@@ -340,11 +340,11 @@ namespace XBLA_Setup_Editor
             x.BlendMult = (ushort)Math.Clamp(src.BlendMult, 0, 65535);
             if (applyN64FogDistances && ex != null)
             {
-                var (_, nearRatio) = XblaFogRatios.TryGetValue(ex.LevelId, out var ratios) ? ratios : (3.0f, 3.0f);
-                if (nearRatio <= 0) nearRatio = 3.0f;
-                x.Unk24 = (uint)Math.Clamp(ex.Unk24 / nearRatio, 0, uint.MaxValue);
-                x.FarFog = (ushort)Math.Clamp(ex.FarFog / nearRatio, 0, 65535);
-                x.NearFog = (ushort)Math.Clamp(ex.NearFog / nearRatio, 0, 65535);
+                var (farRatio, nearRatio) = XblaFogRatios.TryGetValue(ex.LevelId, out var ratios) ? ratios : (1.0f, 1.0f);
+                if (nearRatio <= 0) nearRatio = 1.0f;
+                if (farRatio <= 0) farRatio = 1.0f;
+                x.XblaNewNearFog = (uint)Math.Clamp(ex.XblaNewNearFog / nearRatio, 0, uint.MaxValue);
+                x.XblaNewFarFog = (uint)Math.Clamp(ex.XblaNewFarFog / farRatio, 0, uint.MaxValue);
             }
             x.SkyColorRed = src.SkyColourRed; x.SkyColorGreen = src.SkyColourGreen; x.SkyColorBlue = src.SkyColourBlue; x.CloudEnable = src.SkyColourFlag;
             x.CloudHeight = (ushort)Math.Clamp(src.CloudHeight, -32768, 32767);
