@@ -1,5 +1,7 @@
 # XBLA Setup Editor
 
+> **Disclaimer:** This tool was slop-coded with Claude Opus 4.5. If you don't like that, don't use it and feel free to make your own.
+
 A modding tool for GoldenEye 007 XBLA (Xbox Live Arcade) that allows editing of XEX files, setup files, weapon configurations, and more.
 
 ## Features
