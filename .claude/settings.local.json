@@ -9,7 +9,11 @@
       "Bash(dotnet clean:*)",
       "Bash(ls:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(cd:*)",
+      "Bash(tree:*)",
+      "Bash(find:*)",
+      "Bash(dir:*)"
     ]
   }
 }
