@@ -1,4 +1,4 @@
-// =============================================================================
+﻿// =============================================================================
 // MainForm.cs - Main Application Window
 // =============================================================================
 // This is the central hub of the XBLA Setup Editor. It manages:
@@ -721,15 +721,32 @@ namespace XBLA_Setup_Editor
                 Text =
                     "XBLA Setup Editor\r\n" +
                     "=================\r\n\r\n" +
+                    "Alpha made by Murk17, with the slop help from Claude.\r\n" +
+                    "Sometimes, you gotta do things yourself.\r\n\r\n" +
                     "SPECIAL THANKS\r\n" +
                     "--------------\r\n\r\n" +
-                    "TODO: Add names here\r\n\r\n" +
-                    "SHOUTOUTS\r\n" +
-                    "---------\r\n\r\n" +
-                    "TODO: Add shoutouts here\r\n\r\n" +
-                    "TOOLS & RESOURCES\r\n" +
-                    "-----------------\r\n\r\n" +
-                    "TODO: Add tools/resources here\r\n"
+                    "Shooters Forever forum for their breakdown of the XEX file.\r\n" +
+                    "This was an immense help for getting my feet off the ground.\r\n\r\n" +
+                    "Wreck for pioneering that post, and helping me with some\r\n" +
+                    "silly DMs about the 21990 format. Thanks for being an\r\n" +
+                    "absolute legend in the GE community.\r\n\r\n" +
+                    "RedVox57 for the suggestions and bug squishing for the\r\n" +
+                    "simplest issues. Thanks for showing me the ropes for the\r\n" +
+                    "GE Setup Editor many months ago.\r\n\r\n" +
+                    "AdzyIn3D for allowing me to join in and play XBLA online\r\n" +
+                    "in June 2025, I don't think I'd be here otherwise.\r\n\r\n" +
+                    "AXDOOMER for guidance and direction on a handful of\r\n" +
+                    "features, the other legend in the GE modding space.\r\n\r\n" +
+                    "Carnivorous for your setupconv, without this I don't think\r\n" +
+                    "I would have gone further than just editing hex values in\r\n" +
+                    "ImHex and looking at a spreadsheet to make MP Loadouts.\r\n\r\n" +
+                    "BrandonLooneyTunesFan2000. The Cradle Champ and the best\r\n" +
+                    "skyboxes ever. Go sub to his channel on YT.\r\n\r\n" +
+                    "And as corny as it is; You. You for looking into this tool\r\n" +
+                    "and keeping the modding community alive in both a 30 year\r\n" +
+                    "old game and an unreleased beta. You're the heartbeat\r\n" +
+                    "that'll keep this community alive. For better, or worse.\r\n\r\n" +
+                    "Finally, DravonKing. Lava you ∞.\r\n"
             };
 
             var btnClose = new Button
