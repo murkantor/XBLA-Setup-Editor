@@ -1,3 +1,52 @@
+// =============================================================================
+// MPWeaponSetControl.cs - Multiplayer Weapon Set Editor Tab
+// =============================================================================
+// UserControl that provides the "MP Weapon Sets" tab for editing the 16
+// multiplayer weapon set configurations in GoldenEye XBLA.
+//
+// TAB FUNCTIONALITY:
+// ==================
+// 1. Lists all 16 weapon sets (Random + 15 named sets)
+// 2. Displays 8 weapon slots per set in editable DataGridView
+// 3. Provides "Beginner Mode" for automatic ammo/prop configuration
+// 4. Allows editing menu text IDs for set names
+// 5. Includes armor removal option and text folder patching
+//
+// WEAPON SET EDITING:
+// ===================
+// Each weapon slot can be configured with:
+// - Weapon: Dropdown of all 32+ weapons
+// - Ammo Type: Dropdown of all ammunition types
+// - Ammo Count: Starting ammunition amount (0-255)
+// - Has Prop: Whether a pickup model spawns on the ground
+// - Prop Model: Which 3D model to use for the pickup
+// - Scale: Model scale factor
+//
+// BEGINNER MODE:
+// ==============
+// When enabled, selecting a weapon automatically fills in:
+// - Correct ammo type (e.g., PP7 → 9mm Ammo)
+// - Balanced ammo count (e.g., SMGs get 100, pistols get 50)
+// - Appropriate prop model (same as weapon name)
+// - Prop enabled/disabled based on weapon type
+//
+// This uses the mappings defined in BeginnerRulesData.cs.
+//
+// ADDITIONAL FEATURES:
+// ====================
+// - Remove Armor: Scans XEX for Body Armor objects and zeros them out
+// - Text Folder: Patches the 3-character language folder code at 0xA3AC
+// - Text ID: Hex ID for the weapon set name string (upper 16 bits)
+//
+// DATA FLOW:
+// ==========
+// 1. MainForm loads XEX and calls OnXexLoaded()
+// 2. MPWeaponSetParser extracts all weapon set data
+// 3. ListBox shows all 16 sets, selecting one populates the grid
+// 4. Edits update the parser's data structures immediately
+// 5. GetModifiedXexData() writes changes back to XEX bytes
+// =============================================================================
+
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -8,8 +57,8 @@ using XBLA_Setup_Editor.Data;
 namespace XBLA_Setup_Editor.Controls
 {
     /// <summary>
-    /// UserControl for editing MP weapon sets in XEX files.
-    /// Implements IXexTab for shared XEX state.
+    /// Tab control for editing multiplayer weapon sets. Features beginner mode
+    /// for automatic configuration and armor removal functionality.
     /// </summary>
     public sealed class MPWeaponSetControl : UserControl, IXexTab
     {

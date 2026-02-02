@@ -1,3 +1,47 @@
+// =============================================================================
+// File21990Parser.cs - N64 GoldenEye Configuration File Parser
+// =============================================================================
+// Parses the "21990" configuration file from the N64 version of GoldenEye and
+// converts its data structures for import into GoldenEye XBLA.
+//
+// FILE FORMAT OVERVIEW:
+// =====================
+// The 21990 file is a compiled N64 data file containing level configuration:
+// - Sky/atmosphere settings (colors, fog distances, cloud/water parameters)
+// - Stage music track assignments
+// - Menu text ID references (folder/icon names)
+// - Mission briefing text IDs (hardcoded due to 0000 padding in file)
+//
+// DATA REGIONS IN 21990:
+// ======================
+// 0x09E00-0x0B000: Menu entries (level IDs, text references)
+// 0x24080-0x25C50: Sky data (48 entries × 0x5C bytes each)
+// 0x2DD80-0x2DEA0: Music data (level->track assignments, 8 bytes each)
+//
+// DATA REGIONS IN XEX (XBLA):
+// ===========================
+// 0x71DF60: Mission briefings (21 entries × 0x30 bytes)
+// 0x71E570: Mission select menu (20 entries)
+// 0x84B860: Sky data (48 entries × 0x38 bytes - compressed format)
+// 0xDE1A30: Music mission table (23 entries × 8 bytes)
+//
+// KEY DIFFERENCES N64 vs XBLA:
+// ============================
+// - Sky entries: N64 uses floats (0x5C bytes), XBLA uses packed u16 (0x38 bytes)
+// - Fog distances: XBLA has additional "new fog" fields with level-specific ratios
+// - Menu structure: Different pointer/text ID layout
+// - Briefings: N64 has 0000 padding, so IDs are hardcoded in this parser
+//
+// FOG RATIO TABLE:
+// ================
+// XBLA adjusted fog distances for many levels. When applying N64 fog values,
+// we divide by these ratios to compensate:
+// - Aztec (0x1C): 3.0× far, 3.0× near
+// - Caverns (0x27): 1.5× far, 1.0× near
+// - Jungle (0x25): 0.6× far, 0.8× near (fog INCREASED)
+// - Surface 2 (0x2B): 0.3× far, 0.65× near (very dense fog)
+// =============================================================================
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,6 +50,10 @@ using System.Text;
 
 namespace XBLA_Setup_Editor
 {
+    /// <summary>
+    /// Parses N64 GoldenEye 21990 configuration files and applies data to XBLA XEX.
+    /// Handles sky/fog settings, music tracks, menu text IDs, and briefings.
+    /// </summary>
     public sealed class File21990Parser
     {
         public byte[] RawData { get; private set; } = Array.Empty<byte>();

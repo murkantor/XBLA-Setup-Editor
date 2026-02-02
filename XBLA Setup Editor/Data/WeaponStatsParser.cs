@@ -1,3 +1,58 @@
+// =============================================================================
+// WeaponStatsParser.cs - Weapon Statistics Parser for GoldenEye XBLA
+// =============================================================================
+// Parses and patches weapon statistics, weapon model data, and ammo reserve
+// capacity in GoldenEye XBLA XEX files. Also handles import from N64 21990 files.
+//
+// XEX DATA REGIONS:
+// =================
+// 0x4134D8 - 0x414967: Weapon Stats (47 entries × 0x70 bytes = 5,264 bytes)
+// 0x414968 - 0x415CDF: Weapon Models (89 entries × 0x38 bytes = 4,984 bytes)
+// 0x416C84 - 0x416DEB: Ammo Reserve (30 entries × 0x0C bytes = 360 bytes)
+//
+// N64 21990 DATA REGIONS:
+// =======================
+// 0x11704 - 0x12B94: Weapon Stats (47 entries × 0x70 bytes)
+// 0x12B94 - 0x13F0C: Weapon Models (89 entries × 0x38 bytes)
+// 0x1515C - 0x152C4: Ammo Reserve (30 entries × 0x0C bytes)
+//
+// WEAPON STATS ENTRY (112 bytes / 0x70):
+// ======================================
+// XBLA Layout:
+//   0x00-0x1B: Position/visual (muzzle flash, screen pos, aim shifts)
+//   0x1C-0x1D: Padding
+//   0x1E-0x2B: Ammo/firing (ammo type, magazine, fire modes, sound)
+//   0x2C-0x6F: Combat stats (damage, inaccuracy, scope, recoil, AI volumes)
+//
+// N64 Layout (DIFFERENT field order!):
+//   0x00: destruction_amount (float) → Damage
+//   0x04-0x0C: ingame_pos (floats) → Screen positions
+//   0x10: recoil_back (float) → RecoilBackward
+//   0x44-0x47: recoil_speed_bytes → Timing data (NOT a float!)
+//   ... and many more remapped fields
+//
+// CRITICAL: RECOIL SPEED FIELD (0x44-0x47)
+// ========================================
+// This 4-byte field contains timing/frame delay data, NOT a proper IEEE float!
+// Reading it as a float will produce garbage values like -2.1E+25.
+// The parser preserves the raw bytes to maintain correct fire rate timing.
+//
+// WEAPON MODEL ENTRY (56 bytes / 0x38):
+// =====================================
+//   0x00: Model Details RAM Address
+//   0x04: GZ Text String RAM Address
+//   0x08: Has GZ Model (0=Yes, 1=No)
+//   0x0C: Statistics RAM Address
+//   0x10-0x27: Watch/inventory display positions and text IDs
+//   0x28-0x37: Inventory list positions
+//
+// AMMO RESERVE ENTRY (12 bytes / 0x0C):
+// =====================================
+//   0x00: Icon Offset (float)
+//   0x04: Max Reserve Capacity (uint)
+//   0x08: Pointer (RAM address, N64 used screen bank offset)
+// =============================================================================
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,7 +61,8 @@ using XBLA_Setup_Editor.Data;
 namespace XBLA_Setup_Editor
 {
     /// <summary>
-    /// Parses and patches Weapon Statistics, Weapon Models, and Ammo Reserve data in GoldenEye XBLA XEX files.
+    /// Parses and patches Weapon Statistics, Weapon Models, and Ammo Reserve data.
+    /// Supports both XBLA XEX files and N64 21990 files with field layout conversion.
     /// </summary>
     public sealed class WeaponStatsParser
     {

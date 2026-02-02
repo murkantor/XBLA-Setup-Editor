@@ -1,3 +1,53 @@
+// =============================================================================
+// MPWeaponSetParser.cs - Multiplayer Weapon Set Parser for GoldenEye XBLA
+// =============================================================================
+// Parses and patches the multiplayer weapon sets embedded in GoldenEye XBLA XEX
+// files. These sets define which weapons spawn in multiplayer matches.
+//
+// XEX MEMORY LAYOUT:
+// ==================
+// 0x417728 - 0x417AE7: Weapon Sets (15 sets × 64 bytes = 960 bytes)
+// 0x417AE8 - 0x417BA7: Select List (16 entries × 12 bytes = 192 bytes)
+//
+// WEAPON SET STRUCTURE (64 bytes / 0x40):
+// =======================================
+// Each set contains 8 weapon entries (8 bytes each):
+//   [0] Weapon ID      - Index into weapon table (WeaponData.cs)
+//   [1] Ammo Type      - Index into ammo type table (AmmoTypeData.cs)
+//   [2] Ammo Count     - Starting ammunition amount
+//   [3] Weapon Toggle  - 0x00 = no prop, 0x01 = has prop model
+//   [4] Unknown        - Usually 0x00
+//   [5] Prop ID        - Index into prop model table (PropData.cs)
+//   [6] Scale          - Prop model scale factor
+//   [7] Unknown        - 0x00, 0x40, or 0x80
+//
+// SELECT LIST STRUCTURE (12 bytes / 0x0C):
+// ========================================
+// Each entry links a menu item to its weapon set:
+//   [0-3] Text ID      - Upper 16 bits = string bank ID for menu name
+//   [4-7] Weapons Addr - Pointer to weapon set data (or 0 for Random)
+//   [8-B] Flags        - Configuration flags
+//
+// PREDEFINED WEAPON SETS:
+// =======================
+// Index 0 = Random (no actual set - picks randomly)
+// Index 1 = Slappers Only!
+// Index 2 = Pistols
+// Index 3 = Throwing Knives
+// Index 4 = Automatics
+// Index 5 = Power Weapons
+// Index 6 = Sniper Rifles
+// Index 7 = Grenades
+// Index 8 = Remote Mines
+// Index 9 = Grenade Launchers
+// Index 10 = Timed Mines
+// Index 11 = Proximity Mines
+// Index 12 = Rockets
+// Index 13 = Lasers
+// Index 14 = Golden Gun
+// Index 15 = Hunting Knives
+// =============================================================================
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,6 +57,7 @@ namespace XBLA_Setup_Editor
 {
     /// <summary>
     /// Parses and patches Multiplayer Weapon Sets in GoldenEye XBLA XEX files.
+    /// Manages 15 weapon sets with 8 weapons each, plus menu selection entries.
     /// </summary>
     public sealed class MPWeaponSetParser
     {

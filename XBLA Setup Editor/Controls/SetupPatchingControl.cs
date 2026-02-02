@@ -1,3 +1,59 @@
+// =============================================================================
+// SetupPatchingControl.cs - Level Setup Conversion Tab
+// =============================================================================
+// UserControl that provides the "Setup Patching" tab for converting N64 level
+// setup files to XBLA format and patching them into XEX files.
+//
+// TAB FUNCTIONALITY:
+// ==================
+// This tab enables two main workflows:
+// 1. Single Conversion: Convert one setup file using setupconv.exe
+// 2. Batch Conversion: Convert all setups in a folder, then patch into XEX
+//
+// SINGLE CONVERSION MODE:
+// =======================
+// - Select Solo or Multi mode (different memory address tables)
+// - Choose level from dropdown (sets memory offset automatically)
+// - Select input setup file (.set or extracted N64 setup)
+// - Select output path for converted .bin file
+// - Run setupconv.exe with the specified parameters
+//
+// BATCH CONVERSION MODE:
+// ======================
+// - Select input directory containing all setup files
+// - Output directory is auto-created (XBLA subfolder)
+// - Converts all recognized setups using predefined naming patterns
+// - Optionally patches results into loaded XEX
+//
+// XEX PATCHING OPTIONS:
+// =====================
+// - Patch loaded XEX: Apply converted setups to current XEX
+// - Use MP pool overflow: Allow setups to spill into multiplayer region
+// - Extend XEX if needed: Append data to end of XEX (experimental)
+// - Force Repack: Re-convert setups to their new addresses
+// - Split across two XEX: Create two XEX files when all don't fit
+//
+// MEMORY ADDRESS TABLES:
+// ======================
+// Solo mode addresses (single-player levels):
+//   Archives: 0x82CA1480, Control: 0x82CB1CF8, Dam: 0x82D115F0, etc.
+//
+// Multi mode addresses (multiplayer levels):
+//   Library: 0x82DC5CC0, Complex: 0x82DE6D38, Temple: 0x82DE19D8, etc.
+//
+// FILE NAMING PATTERNS:
+// =====================
+// The batch converter recognizes these N64 setup file name patterns:
+//   UsetuparchZ = Archives, UsetupcontrolZ = Control, UsetupdamZ = Dam,
+//   UsetuparkZ = Facility, UsetupcaveZ = Caverns, etc.
+//
+// SETUPCONV.EXE:
+// ==============
+// External tool that converts N64 setup format to XBLA format.
+// Usage: setupconv.exe <input> <output> <memory_address>
+// Must be in application directory for this control to function.
+// =============================================================================
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -10,8 +66,8 @@ using XBLA_Setup_Editor;
 namespace XBLA_Setup_Editor.Controls
 {
     /// <summary>
-    /// UserControl for setup patching operations.
-    /// Implements IXexTab for shared XEX state.
+    /// Tab control for converting N64 setup files to XBLA format using setupconv.exe
+    /// and patching them into XEX files. Supports single and batch conversion modes.
     /// </summary>
     public sealed class SetupPatchingControl : UserControl, IXexTab
     {

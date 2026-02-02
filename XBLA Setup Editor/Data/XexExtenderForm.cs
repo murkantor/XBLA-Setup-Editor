@@ -1,3 +1,32 @@
+// =============================================================================
+// XexExtenderForm.cs - Standalone XEX Extension Form (EXPERIMENTAL)
+// =============================================================================
+// Provides a standalone form interface for the XEX extension functionality.
+// This is separate from the integrated XexExtenderControl for direct file
+// operations without requiring the main editor workflow.
+//
+// NOTE: This form is EXPERIMENTAL and may not be actively used.
+// The integrated XexExtenderControl provides the same functionality within
+// the main editor's tabbed interface.
+//
+// FORM WORKFLOW:
+// ==============
+// 1. User selects input XEX file
+// 2. Form auto-analyzes the XEX structure (blocks, headroom, addresses)
+// 3. User selects data file to append
+// 4. Form validates extension against available headroom
+// 5. User clicks "Extend XEX" to create output file
+//
+// KEY INFORMATION DISPLAYED:
+// ==========================
+// - File size and image size
+// - Compression type (only basic compression supported)
+// - Number of data blocks
+// - Current end memory address (where new data would go)
+// - SHA1 hash (truncated)
+// - Block-by-block breakdown in log
+// =============================================================================
+
 using System;
 using System.Drawing;
 using System.IO;
@@ -6,7 +35,8 @@ using System.Windows.Forms;
 namespace XBLA_Setup_Editor.Data
 {
     /// <summary>
-    /// Form for extending XEX files with additional data
+    /// Standalone form for extending XEX files with additional data blocks.
+    /// EXPERIMENTAL: Limited by Xenia compatibility constraints.
     /// </summary>
     public class XexExtenderForm : Form
     {

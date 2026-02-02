@@ -1,3 +1,46 @@
+// =============================================================================
+// XexExtenderControl.cs - XEX Extension Tab (EXPERIMENTAL)
+// =============================================================================
+// UserControl that provides the "XEX Extender" tab for attempting to extend
+// XEX files with additional data blocks. This feature is EXPERIMENTAL.
+//
+// WARNING: THIS FEATURE DOES NOT WORK RELIABLY
+// =============================================
+// Due to Xenia's page table validation constraints, XEX extension is severely
+// limited. The maximum extension for GoldenEye XBLA is typically only ~32KB,
+// which is not enough for most practical use cases.
+//
+// TAB FUNCTIONALITY:
+// ==================
+// 1. Auto-analyzes loaded XEX when it's loaded via MainForm
+// 2. Displays XEX structure information (blocks, addresses, headroom)
+// 3. Allows selection of data file to append
+// 4. Validates extension against available headroom
+// 5. Performs extension if constraints are met
+//
+// DISPLAYED INFORMATION:
+// ======================
+// - File size and image size
+// - Compression type (only basic compression is supported)
+// - Number of data blocks
+// - Current end memory address
+// - Where new data would be mapped
+// - SHA1 hash (truncated for display)
+//
+// INTEGRATION WITH MAINFORM:
+// ==========================
+// Unlike the standalone XexExtenderForm, this control integrates with the
+// editor's shared state management:
+// - Receives XEX data via OnXexLoaded() callback
+// - Modifications trigger XexModified event
+// - Changes are saved when user clicks "Save XEX" in main toolbar
+//
+// LOG OUTPUT:
+// ===========
+// On startup, displays prominent warning that feature is experimental.
+// Logs all analysis results and operation progress for debugging.
+// =============================================================================
+
 using System;
 using System.Drawing;
 using System.IO;
@@ -7,8 +50,8 @@ using XBLA_Setup_Editor.Data;
 namespace XBLA_Setup_Editor.Controls
 {
     /// <summary>
-    /// UserControl for extending XEX files with additional data.
-    /// Implements IXexTab for shared XEX state.
+    /// EXPERIMENTAL: Tab control for extending XEX files with additional data.
+    /// Limited by Xenia compatibility constraints to ~32KB for GoldenEye XBLA.
     /// </summary>
     public sealed class XexExtenderControl : UserControl, IXexTab
     {

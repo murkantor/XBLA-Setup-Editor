@@ -1,3 +1,57 @@
+// =============================================================================
+// XexExtender.cs - XEX File Extension Utility (EXPERIMENTAL)
+// =============================================================================
+// Attempts to extend XEX files by appending additional data blocks.
+// This is an EXPERIMENTAL feature with significant limitations.
+//
+// WARNING: THIS FEATURE DOES NOT WORK RELIABLY
+// =============================================
+// Due to Xenia's page table validation, extending XEX files is severely limited.
+// The maximum extension is constrained to the difference between image_size and
+// the sum of all block memory sizes, typically only ~32KB for GoldenEye XBLA.
+//
+// XEX STRUCTURE OVERVIEW:
+// =======================
+// XEX files are Xbox 360 executables with the following layout:
+//
+// Header (0x0000 - 0x3000):
+//   0x000-0x003: Magic "XEX2"
+//   0x104: Image size (big-endian u32) - total decompressed memory size
+//   0x108: SHA1 hash (20 bytes) - hash of the image data
+//   0x1C00: File format info header
+//   0x1C08+: Block entries (8 bytes each)
+//
+// Data Blocks (0x3000+):
+//   Each block consists of:
+//   - data_size bytes of actual content (stored in file)
+//   - zero_size bytes of zero padding (only in memory, not stored)
+//
+// BLOCK ENTRY FORMAT (8 bytes):
+// =============================
+//   [0-3] data_size (big-endian u32) - bytes stored in file
+//   [4-7] zero_size (big-endian u32) - bytes of zero padding in memory
+//
+// MEMORY MAPPING:
+// ===============
+// XEX_BASE_ADDRESS = 0x82000000
+// Each block's memory address = BASE + sum of previous (data_size + zero_size)
+// New data would be appended at: BASE + total_block_memory
+//
+// XENIA COMPATIBILITY CONSTRAINT:
+// ===============================
+// Xenia validates: sum(data_size + zero_size) <= image_size
+// We CANNOT change image_size without causing page table validation failures.
+// Therefore: max_extension = image_size - sum(data_size + zero_size)
+// For GoldenEye XBLA, this is typically only 0x8000 (32KB).
+//
+// EXTENSION PROCESS:
+// ==================
+// 1. Analyze XEX to find last block and calculate headroom
+// 2. Append new data to end of file
+// 3. Update last block's data_size to include appended data
+// 4. DO NOT modify image_size or recalculate SHA1
+// =============================================================================
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -5,18 +59,8 @@ using System.IO;
 namespace XBLA_Setup_Editor.Data
 {
     /// <summary>
-    /// Provides functionality to extend XEX files with additional read-only data.
-    /// 
-    /// XEX Structure (Basic Compression):
-    /// - Header: 0x0000 - 0x3000
-    /// - Data blocks: 0x3000 onwards
-    /// - Each block: data_size bytes of content + zero_size bytes of padding (in memory)
-    /// 
-    /// Key offsets:
-    /// - 0x104: Image size (big-endian u32) - total decompressed size
-    /// - 0x108: SHA1 hash (20 bytes) - hash of the image
-    /// - 0x1C00: File format info header
-    /// - 0x1C08+: Block entries (8 bytes each: data_size + zero_size)
+    /// EXPERIMENTAL: Attempts to extend XEX files with additional read-only data.
+    /// Limited by Xenia's page table validation to ~32KB for GoldenEye XBLA.
     /// </summary>
     public class XexExtender
     {

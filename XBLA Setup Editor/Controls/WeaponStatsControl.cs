@@ -1,3 +1,56 @@
+// =============================================================================
+// WeaponStatsControl.cs - Weapon Statistics Editor Tab
+// =============================================================================
+// UserControl that provides the "Weapon Stats" tab for editing all weapon
+// statistics, model data, and ammo reserve capacities in GoldenEye XBLA.
+//
+// TAB FUNCTIONALITY:
+// ==================
+// Three sub-tabs organized in a TabControl:
+// 1. Weapon Stats: 47 weapons × 30+ editable fields (damage, accuracy, etc.)
+// 2. Weapon Models: 89 model entries (RAM addresses, display positions)
+// 3. Ammo Reserve: 30 entries (max capacity, icon offset, pointers)
+//
+// WEAPON STATS EDITING:
+// =====================
+// Each weapon entry has these editable fields:
+// - Combat: Damage, Penetration, Inaccuracy, Scope, Force of Impact
+// - Firing: Magazine Size, Ammo Type, Fire Modes (Auto/Single)
+// - Recoil: Backward, Upward, Bolt, Sway
+// - AI: Volume detection for Single/Multi/Active fire, Baselines
+// - Display: Screen X/Y/Z position, Aim shifts, Muzzle flash
+// - Audio: Sound Effect ID, Sound Trigger Rate
+// - Flags: Item bitflags, Ejected Casings RAM address
+//
+// N64 IMPORT FUNCTIONALITY:
+// =========================
+// When a 21990 file is loaded (via MainForm), this tab can automatically
+// import weapon stats with two layout options:
+// - XBLA Layout: Assumes 21990 uses same field order as XBLA (debugging)
+// - N64 Layout: Performs field remapping (FromN64Bytes conversion)
+//
+// RAM ADDRESS PRESERVATION:
+// =========================
+// When "Preserve XBLA RAM Addrs" is checked:
+// - EjectedCasingsRAM in weapon stats
+// - ModelDetailsRAM, GZTextStringRAM, StatisticsRAM in weapon models
+// - Pointer in ammo reserves
+// These addresses are preserved from the original XEX because N64 addresses
+// are invalid in the XBLA memory map.
+//
+// DATA GRIDS:
+// ===========
+// - Double-buffered for smooth scrolling (no flickering)
+// - Frozen columns for Index and Weapon Name (always visible)
+// - Hex values displayed with 0x prefix, parsed on edit
+// - Float values displayed with 4 decimal places
+//
+// INTERFACE IMPLEMENTATIONS:
+// ==========================
+// IXexTab: Receives XEX load/unload, provides modified data
+// I21990Tab: Receives 21990 load/unload, auto-imports weapon stats
+// =============================================================================
+
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -8,8 +61,8 @@ using XBLA_Setup_Editor.Data;
 namespace XBLA_Setup_Editor.Controls
 {
     /// <summary>
-    /// UserControl for editing weapon stats in XEX files.
-    /// Implements IXexTab for shared XEX state and I21990Tab for shared 21990 state.
+    /// Tab control for editing weapon statistics, models, and ammo reserves.
+    /// Supports direct XEX editing and import from N64 21990 configuration files.
     /// </summary>
     public sealed class WeaponStatsControl : UserControl, IXexTab, I21990Tab
     {

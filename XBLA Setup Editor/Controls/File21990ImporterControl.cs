@@ -1,3 +1,47 @@
+// =============================================================================
+// File21990ImporterControl.cs - N64 Config Import Tab
+// =============================================================================
+// UserControl that provides the "Skies, Fog and Music" tab in the editor.
+// Imports sky/atmosphere, music, and menu data from N64 21990 configuration
+// files and applies them to GoldenEye XBLA XEX files.
+//
+// TAB FUNCTIONALITY:
+// ==================
+// This tab allows users to:
+// 1. Load a 21990 file (via MainForm's shared file dialog)
+// 2. Preview extracted data in list views (menu, sky, music entries)
+// 3. Select which data categories to apply (checkboxes)
+// 4. Apply selected patches to the loaded XEX
+//
+// IMPORT OPTIONS:
+// ===============
+// - Apply Folder/Icon Text: Menu text ID references for level selection screen
+// - Apply Sky/Fog: Sky colors, cloud settings, water parameters
+// - Sky->Fog Color: Copy sky color to fog color (visual consistency)
+// - N64 Fog Distances: Apply level-specific fog distance ratios
+// - Apply Music: Stage music track assignments
+//
+// DATA FLOW:
+// ==========
+// 1. MainForm loads 21990 file and calls On21990Loaded()
+// 2. File21990Parser extracts menu/sky/music entries
+// 3. ListView controls display extracted data for preview
+// 4. User clicks "Apply" to patch XEX via parser's Apply methods
+// 5. XexModified event notifies MainForm of changes
+//
+// APPLY BEHAVIOR:
+// ===============
+// The control stores a copy of the original XEX data (_originalXexData) to
+// prevent "stacking" modifications. Each Apply restores from original first,
+// then applies all selected patches fresh. This prevents issues like fog
+// ratios being divided multiple times.
+//
+// INTERFACE IMPLEMENTATIONS:
+// ==========================
+// IXexTab: Receives XEX load/unload notifications, provides modified data
+// I21990Tab: Receives 21990 load/unload notifications
+// =============================================================================
+
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -7,8 +51,8 @@ using System.Windows.Forms;
 namespace XBLA_Setup_Editor.Controls
 {
     /// <summary>
-    /// UserControl for importing 21990 file data into XEX files.
-    /// Implements IXexTab for shared XEX state and I21990Tab for shared 21990 state.
+    /// Tab control for importing N64 21990 configuration data (sky, fog, music)
+    /// into GoldenEye XBLA XEX files. Implements IXexTab and I21990Tab interfaces.
     /// </summary>
     public sealed class File21990ImporterControl : UserControl, IXexTab, I21990Tab
     {

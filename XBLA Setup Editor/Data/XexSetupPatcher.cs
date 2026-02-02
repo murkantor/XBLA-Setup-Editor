@@ -1,4 +1,68 @@
-﻿using System;
+// =============================================================================
+// XexSetupPatcher.cs - Level Setup Data Patcher for GoldenEye XBLA
+// =============================================================================
+// Handles the complex process of patching converted N64 setup files into
+// GoldenEye XBLA XEX files. This includes memory allocation planning, pointer
+// updates, menu/briefing reconfiguration, and optional XEX extension.
+//
+// OVERVIEW:
+// =========
+// When converting N64 GoldenEye levels to XBLA format, the setup files must be:
+// 1. Converted using setupconv.exe (external tool)
+// 2. Placed into the XEX at specific memory addresses
+// 3. Have their pointers updated in the level pointer table
+// 4. Have menu entries and briefings reconfigured
+//
+// XEX MEMORY REGIONS:
+// ===================
+// 0xC7DF38 - 0xC94480: Shared read-only setup data (untouchable)
+// 0xC94480 - 0xDB8CC0: Single-player setup pool (where setups go)
+// 0xDB8CC0 - 0xDDFF60: Multiplayer headers (can overflow into if enabled)
+// 0xF1B6D0+: End of XEX (can extend for additional space)
+//
+// LEVEL POINTER TABLE (0x84AF-0x84B7):
+// ====================================
+// Each level has a pointer entry that tells the game where to find its setup:
+//   Archives: 0x84AFA8    Control: 0x84B050    Facility: 0x84B2B8
+//   Dam: 0x84B280         Silo: 0x84AFE0       Train: 0x84B0C0
+//   ... and 15 more levels
+//
+// PLACEMENT ALGORITHM:
+// ====================
+// 1. First Pass: Try to place setups in their original "fixed" slots
+//    - Each level has a designated region (e.g., Dam = 0xD045F0)
+//    - If the converted setup fits, use the original address (no repack needed)
+//
+// 2. Second Pass: Allocate remaining setups from free pool
+//    - Use SP pool (0xC94480 - 0xDB8CC0) first
+//    - If "Allow MP pool" is enabled, overflow into MP region
+//    - If "Extend XEX" is enabled, append to end of file
+//
+// 3. Repack: Setups that moved to new addresses must be re-converted
+//    - setupconv.exe is called again with the new target address
+//    - This is because setup files contain embedded address references
+//
+// MENU AND BRIEFING SYSTEM:
+// =========================
+// Menu entries (0x71E570 - 0x71E8B7):
+//   Structure: [Pointer 4] [Folder TextID 2] [Icon TextID 2] [LevelID 4]
+//
+// Briefings (0x71DF60 - 0x71E350):
+//   21 entries × 0x30 bytes each
+//   First byte identifies the level (LevelBriefBase lookup)
+//
+// Image table (searched at runtime):
+//   Maps levels to their menu preview images
+//
+// SPLIT XEX MODE:
+// ===============
+// When all levels don't fit in one XEX, the patcher can split across two:
+// - XEX1 gets as many levels as fit (in priority order)
+// - XEX2 gets the remaining levels
+// - Each XEX has its own menu/briefing configuration
+// =============================================================================
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,6 +71,10 @@ using XBLA_Setup_Editor.Data;
 
 namespace XBLA_Setup_Editor
 {
+    /// <summary>
+    /// Patches converted N64 setup files into GoldenEye XBLA XEX files.
+    /// Handles memory allocation, pointer updates, and menu reconfiguration.
+    /// </summary>
     public static class XexSetupPatcher
     {
         // --- CONSTANTS ---
