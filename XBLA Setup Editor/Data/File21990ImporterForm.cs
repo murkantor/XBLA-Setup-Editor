@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 
@@ -31,8 +32,10 @@ namespace XBLA_Setup_Editor
         public File21990ImporterForm()
         {
             Text = "21990 File Importer (Debug Mode)";
-            Width = 1200;
-            Height = 1000;
+            AutoScaleDimensions = new SizeF(96F, 96F);
+            AutoScaleMode = AutoScaleMode.None;
+            Width = DpiHelper.Scale(this, 1200);
+            Height = DpiHelper.Scale(this, 1000);
             StartPosition = FormStartPosition.CenterParent;
 
             var mainLayout = new TableLayoutPanel
@@ -40,13 +43,13 @@ namespace XBLA_Setup_Editor
                 Dock = DockStyle.Fill,
                 ColumnCount = 4,
                 RowCount = 16,
-                Padding = new Padding(12)
+                Padding = new Padding(DpiHelper.Scale(this, 12))
             };
 
-            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));
+            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DpiHelper.Scale(this, 90)));
             mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));
-            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));
+            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DpiHelper.Scale(this, 90)));
+            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DpiHelper.Scale(this, 90)));
 
             _txt21990Path = new TextBox { Dock = DockStyle.Fill };
             var btn21990Browse = new Button { Text = "Browse...", Dock = DockStyle.Fill };
@@ -71,25 +74,25 @@ namespace XBLA_Setup_Editor
             {
                 Text = "Apply Patches to XEX",
                 Dock = DockStyle.Fill,
-                Height = 32,
+                Height = DpiHelper.Scale(this, 32),
                 Enabled = false
             };
 
             _lvSkyEntries = new ListView { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, GridLines = true };
-            _lvSkyEntries.Columns.Add("#", 30);
-            _lvSkyEntries.Columns.Add("Level", 60);
-            _lvSkyEntries.Columns.Add("Sky RGB", 80);
+            _lvSkyEntries.Columns.Add("#", DpiHelper.Scale(this, 30));
+            _lvSkyEntries.Columns.Add("Level", DpiHelper.Scale(this, 60));
+            _lvSkyEntries.Columns.Add("Sky RGB", DpiHelper.Scale(this, 80));
 
             _lvMusicEntries = new ListView { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, GridLines = true };
-            _lvMusicEntries.Columns.Add("#", 30);
-            _lvMusicEntries.Columns.Add("Level", 60);
-            _lvMusicEntries.Columns.Add("Main", 60);
+            _lvMusicEntries.Columns.Add("#", DpiHelper.Scale(this, 30));
+            _lvMusicEntries.Columns.Add("Level", DpiHelper.Scale(this, 60));
+            _lvMusicEntries.Columns.Add("Main", DpiHelper.Scale(this, 60));
 
             _lvMenuEntries = new ListView { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, GridLines = true };
-            _lvMenuEntries.Columns.Add("Level ID", 60);
-            _lvMenuEntries.Columns.Add("Name", 80);
-            _lvMenuEntries.Columns.Add("Folder Text", 80);
-            _lvMenuEntries.Columns.Add("Icon Text", 80);
+            _lvMenuEntries.Columns.Add("Level ID", DpiHelper.Scale(this, 60));
+            _lvMenuEntries.Columns.Add("Name", DpiHelper.Scale(this, 80));
+            _lvMenuEntries.Columns.Add("Folder Text", DpiHelper.Scale(this, 80));
+            _lvMenuEntries.Columns.Add("Icon Text", DpiHelper.Scale(this, 80));
 
             _txtLog = new TextBox
             {
@@ -97,36 +100,36 @@ namespace XBLA_Setup_Editor
                 Multiline = true,
                 ScrollBars = ScrollBars.Both,
                 ReadOnly = true,
-                Font = new System.Drawing.Font("Consolas", 9),
+                Font = new Font("Consolas", 9 * DpiHelper.GetScaleFactor(this)),
                 WordWrap = false
             };
 
             int row = 0;
             // Row 0
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-            mainLayout.Controls.Add(new Label { Text = "21990 File:", Dock = DockStyle.Fill, TextAlign = System.Drawing.ContentAlignment.MiddleLeft }, 0, row);
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30)));
+            mainLayout.Controls.Add(new Label { Text = "21990 File:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft }, 0, row);
             mainLayout.Controls.Add(_txt21990Path, 1, row);
             mainLayout.Controls.Add(btn21990Browse, 2, row);
             mainLayout.Controls.Add(_btnAnalyze, 3, row);
             row++;
 
             // Row 1
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-            mainLayout.Controls.Add(new Label { Text = "Input XEX:", Dock = DockStyle.Fill, TextAlign = System.Drawing.ContentAlignment.MiddleLeft }, 0, row);
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30)));
+            mainLayout.Controls.Add(new Label { Text = "Input XEX:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft }, 0, row);
             mainLayout.Controls.Add(_txtInputXex, 1, row);
             mainLayout.SetColumnSpan(_txtInputXex, 1);
             mainLayout.Controls.Add(btnInputXexBrowse, 2, row);
             row++;
 
             // Row 2
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
-            mainLayout.Controls.Add(new Label { Text = "Output XEX:", Dock = DockStyle.Fill, TextAlign = System.Drawing.ContentAlignment.MiddleLeft }, 0, row);
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30)));
+            mainLayout.Controls.Add(new Label { Text = "Output XEX:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft }, 0, row);
             mainLayout.Controls.Add(_txtOutputXex, 1, row);
             mainLayout.Controls.Add(btnOutputXexBrowse, 2, row);
             row++;
 
             // Row 3: Options
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 32)));
             var optionsPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, AutoSize = true };
             optionsPanel.Controls.Add(_chkBackupXex);
             optionsPanel.Controls.Add(_chkApplyMenuData); // Added here
@@ -141,8 +144,8 @@ namespace XBLA_Setup_Editor
             row++;
 
             // Row 4: Menu Label
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
-            var lblMenu = new Label { Text = "Scanned Menu Entries (Folder/Icon):", Dock = DockStyle.Fill, TextAlign = System.Drawing.ContentAlignment.BottomLeft };
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 22)));
+            var lblMenu = new Label { Text = "Scanned Menu Entries (Folder/Icon):", Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft };
             mainLayout.Controls.Add(lblMenu, 0, row);
             mainLayout.SetColumnSpan(lblMenu, 4);
             row++;
@@ -154,8 +157,8 @@ namespace XBLA_Setup_Editor
             row++;
 
             // Row 6: Sky Label
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
-            var lblSky = new Label { Text = "Sky Entries:", Dock = DockStyle.Fill, TextAlign = System.Drawing.ContentAlignment.BottomLeft };
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 22)));
+            var lblSky = new Label { Text = "Sky Entries:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft };
             mainLayout.Controls.Add(lblSky, 0, row);
             mainLayout.SetColumnSpan(lblSky, 4);
             row++;
@@ -167,8 +170,8 @@ namespace XBLA_Setup_Editor
             row++;
 
             // Row 8: Music Label
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
-            var lblMusic = new Label { Text = "Music Entries:", Dock = DockStyle.Fill, TextAlign = System.Drawing.ContentAlignment.BottomLeft };
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 22)));
+            var lblMusic = new Label { Text = "Music Entries:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft };
             mainLayout.Controls.Add(lblMusic, 0, row);
             mainLayout.SetColumnSpan(lblMusic, 4);
             row++;
@@ -180,8 +183,8 @@ namespace XBLA_Setup_Editor
             row++;
 
             // Row 10: Log Label
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
-            var lblLog = new Label { Text = "Log:", Dock = DockStyle.Fill, TextAlign = System.Drawing.ContentAlignment.BottomLeft };
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 22)));
+            var lblLog = new Label { Text = "Log:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft };
             mainLayout.Controls.Add(lblLog, 0, row);
             mainLayout.SetColumnSpan(lblLog, 4);
             row++;

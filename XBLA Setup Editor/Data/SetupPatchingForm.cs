@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
@@ -113,13 +114,15 @@ namespace XBLA_Setup_Editor
         public SetupPatchingForm()
         {
             Text = "Setup Patching (setupconv.exe)";
-            Width = 980;
-            Height = 800;
+            AutoScaleDimensions = new SizeF(96F, 96F);
+            AutoScaleMode = AutoScaleMode.None;
+            Width = DpiHelper.Scale(this, 980);
+            Height = DpiHelper.Scale(this, 800);
 
-            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 22, Padding = new Padding(12), AutoSize = true };
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220));
+            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 22, Padding = new Padding(DpiHelper.Scale(this, 12)), AutoSize = true };
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DpiHelper.Scale(this, 220)));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 160));
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DpiHelper.Scale(this, 160)));
 
             _rbSolo = new RadioButton { Text = "Solo", Checked = true, AutoSize = true, Dock = DockStyle.Left };
             _rbMulti = new RadioButton { Text = "Multi", AutoSize = true, Dock = DockStyle.Left };
@@ -133,14 +136,14 @@ namespace XBLA_Setup_Editor
 
             var btnBrowseInput = new Button { Text = "Browse...", Dock = DockStyle.Fill };
             var btnBrowseOutput = new Button { Text = "Browse...", Dock = DockStyle.Fill };
-            var btnRunSingle = new Button { Text = "Run setupconv.exe (single)", Dock = DockStyle.Fill, Height = 34 };
+            var btnRunSingle = new Button { Text = "Run setupconv.exe (single)", Dock = DockStyle.Fill, Height = DpiHelper.Scale(this, 34) };
 
             // Batch UI
             _txtBatchInputDir = new TextBox { Dock = DockStyle.Fill, ReadOnly = true };
             _txtBatchOutputDir = new TextBox { Dock = DockStyle.Fill, ReadOnly = true };
             var btnBrowseBatchIn = new Button { Text = "Browse...", Dock = DockStyle.Fill };
             var btnBrowseBatchOut = new Button { Text = "Browse...", Dock = DockStyle.Fill };
-            var btnRunBatchSolo = new Button { Text = "Run batch (Solo)", Dock = DockStyle.Fill, Height = 34 };
+            var btnRunBatchSolo = new Button { Text = "Run batch (Solo)", Dock = DockStyle.Fill, Height = DpiHelper.Scale(this, 34) };
 
             // XEX Patch UI
             _chkPatchXex = new CheckBox { Text = "Patch XEX after batch (Solo)", AutoSize = true, Dock = DockStyle.Left };
@@ -156,11 +159,11 @@ namespace XBLA_Setup_Editor
             _txtOutputXex2 = new TextBox { Dock = DockStyle.Fill, ReadOnly = true };
             var btnBrowseOutputXex2 = new Button { Text = "Browse...", Dock = DockStyle.Fill };
 
-            _txtLog = new TextBox { Dock = DockStyle.Fill, Multiline = true, ScrollBars = ScrollBars.Both, ReadOnly = true, Font = new System.Drawing.Font("Consolas", 9) };
+            _txtLog = new TextBox { Dock = DockStyle.Fill, Multiline = true, ScrollBars = ScrollBars.Both, ReadOnly = true, Font = new System.Drawing.Font("Consolas", 9 * DpiHelper.GetScaleFactor(this)) };
 
             void AddRow(int row, string label, Control mid, Control? right = null)
             {
-                layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+                layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30)));
                 layout.Controls.Add(new Label { Text = label, Dock = DockStyle.Fill, TextAlign = System.Drawing.ContentAlignment.MiddleLeft }, 0, row);
                 layout.Controls.Add(mid, 1, row);
                 if (right != null) layout.Controls.Add(right, 2, row);
@@ -172,17 +175,17 @@ namespace XBLA_Setup_Editor
             AddRow(r++, "Memory Offset", _txtOffset);
             AddRow(r++, "Input Setup", _txtInput, btnBrowseInput);
             AddRow(r++, "Output Setup", _txtOutput, btnBrowseOutput);
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 36)); layout.Controls.Add(btnRunSingle, 0, r++); layout.SetColumnSpan(btnRunSingle, 3);
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 8)); layout.Controls.Add(new Label { Text = "", Dock = DockStyle.Fill }, 0, r++); layout.SetColumnSpan(layout.Controls[layout.Controls.Count - 1], 3);
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 36))); layout.Controls.Add(btnRunSingle, 0, r++); layout.SetColumnSpan(btnRunSingle, 3);
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 8))); layout.Controls.Add(new Label { Text = "", Dock = DockStyle.Fill }, 0, r++); layout.SetColumnSpan(layout.Controls[layout.Controls.Count - 1], 3);
 
             AddRow(r++, "Batch Input Dir", _txtBatchInputDir, btnBrowseBatchIn);
             AddRow(r++, "Batch Output Dir", _txtBatchOutputDir, btnBrowseBatchOut);
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 36)); layout.Controls.Add(btnRunBatchSolo, 0, r++); layout.SetColumnSpan(btnRunBatchSolo, 3);
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30)); layout.Controls.Add(_chkPatchXex, 1, r++);
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30)); layout.Controls.Add(_chkAllowMp, 1, r++);
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30)); layout.Controls.Add(_chkAllowExtendXex, 1, r++);
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30)); layout.Controls.Add(_chkForceRepack, 1, r++);
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30)); layout.Controls.Add(_chkSplitTwoXex, 1, r++);
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 36))); layout.Controls.Add(btnRunBatchSolo, 0, r++); layout.SetColumnSpan(btnRunBatchSolo, 3);
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30))); layout.Controls.Add(_chkPatchXex, 1, r++);
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30))); layout.Controls.Add(_chkAllowMp, 1, r++);
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30))); layout.Controls.Add(_chkAllowExtendXex, 1, r++);
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30))); layout.Controls.Add(_chkForceRepack, 1, r++);
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30))); layout.Controls.Add(_chkSplitTwoXex, 1, r++);
             AddRow(r++, "Input XEX", _txtInputXex, btnBrowseInputXex);
             AddRow(r++, "Output XEX #1", _txtOutputXex, btnBrowseOutputXex);
             AddRow(r++, "Output XEX #2", _txtOutputXex2, btnBrowseOutputXex2);
@@ -444,8 +447,8 @@ namespace XBLA_Setup_Editor
         {
             public ReportDialog(string t, IEnumerable<string> l)
             {
-                Text = t; Width = 800; Height = 600;
-                var b = new TextBox { Dock = DockStyle.Fill, Multiline = true, ScrollBars = ScrollBars.Both, Font = new System.Drawing.Font("Consolas", 9), Text = string.Join(Environment.NewLine, l) };
+                Text = t; Width = DpiHelper.Scale(this, 800); Height = DpiHelper.Scale(this, 600);
+                var b = new TextBox { Dock = DockStyle.Fill, Multiline = true, ScrollBars = ScrollBars.Both, Font = new System.Drawing.Font("Consolas", 9 * DpiHelper.GetScaleFactor(this)), Text = string.Join(Environment.NewLine, l) };
                 Controls.Add(b);
             }
             public static void ShowReport(IWin32Window o, string t, IEnumerable<string> l) => new ReportDialog(t, l).ShowDialog(o);

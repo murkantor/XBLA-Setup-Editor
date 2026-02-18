@@ -46,8 +46,10 @@ namespace XBLA_Setup_Editor
         public MPWeaponSetEditorForm()
         {
             Text = "MP Weapon Set Editor";
-            Width = 1200;
-            Height = 750;
+            AutoScaleDimensions = new SizeF(96F, 96F);
+            AutoScaleMode = AutoScaleMode.None;
+            Width = DpiHelper.Scale(this, 1200);
+            Height = DpiHelper.Scale(this, 750);
             StartPosition = FormStartPosition.CenterParent;
 
             BuildLookups();
@@ -57,25 +59,25 @@ namespace XBLA_Setup_Editor
                 Dock = DockStyle.Fill,
                 ColumnCount = 3,
                 RowCount = 5,
-                Padding = new Padding(12)
+                Padding = new Padding(DpiHelper.Scale(this, 12))
             };
 
-            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 200));  // Weapon set list
+            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DpiHelper.Scale(this, 200)));  // Weapon set list
             mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));   // Weapon details
-            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));  // Buttons
+            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DpiHelper.Scale(this, 100)));  // Buttons
 
             // Row 0: XEX file path
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 32)));
             var pathPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
-            pathPanel.Controls.Add(new Label { Text = "XEX File:", AutoSize = true, Margin = new Padding(0, 6, 5, 0) });
-            _txtXexPath = new TextBox { Width = 500 };
+            pathPanel.Controls.Add(new Label { Text = "XEX File:", AutoSize = true, Margin = new Padding(0, DpiHelper.Scale(this, 6), DpiHelper.Scale(this, 5), 0) });
+            _txtXexPath = new TextBox { Width = DpiHelper.Scale(this, 500), Height = DpiHelper.Scale(this, 23) };
             pathPanel.Controls.Add(_txtXexPath);
-            var btnBrowse = new Button { Text = "Browse...", Width = 75 };
+            var btnBrowse = new Button { Text = "Browse...", Width = DpiHelper.Scale(this, 75), Height = DpiHelper.Scale(this, 26) };
             pathPanel.Controls.Add(btnBrowse);
-            _btnLoadXex = new Button { Text = "Load", Width = 60 };
+            _btnLoadXex = new Button { Text = "Load", Width = DpiHelper.Scale(this, 60), Height = DpiHelper.Scale(this, 26) };
             pathPanel.Controls.Add(_btnLoadXex);
 
-            _chkBackup = new CheckBox { Text = "Backup", Checked = true, AutoSize = true, Margin = new Padding(10, 6, 0, 0) };
+            _chkBackup = new CheckBox { Text = "Backup", Checked = true, AutoSize = true, Margin = new Padding(DpiHelper.Scale(this, 10), DpiHelper.Scale(this, 6), 0, 0) };
             pathPanel.Controls.Add(_chkBackup);
 
             // Armor removal checkbox
@@ -84,40 +86,41 @@ namespace XBLA_Setup_Editor
                 Text = "Remove Armor",
                 Checked = false,
                 AutoSize = true,
-                Margin = new Padding(10, 6, 0, 0),
+                Margin = new Padding(DpiHelper.Scale(this, 10), DpiHelper.Scale(this, 6), 0, 0),
                 ForeColor = Color.DarkRed
             };
             pathPanel.Controls.Add(_chkRemoveArmor);
 
             // 3-char text folder code at 0x0000A3AC
-            pathPanel.Controls.Add(new Label { Text = "Text Folder:", AutoSize = true, Margin = new Padding(10, 6, 5, 0) });
+            pathPanel.Controls.Add(new Label { Text = "Text Folder:", AutoSize = true, Margin = new Padding(DpiHelper.Scale(this, 10), DpiHelper.Scale(this, 6), DpiHelper.Scale(this, 5), 0) });
             _txtTextFolder3 = new TextBox
             {
-                Width = 40,
+                Width = DpiHelper.Scale(this, 40),
+                Height = DpiHelper.Scale(this, 23),
                 MaxLength = 3,
                 CharacterCasing = CharacterCasing.Upper
             };
             pathPanel.Controls.Add(_txtTextFolder3);
 
-            _btnSaveXex = new Button { Text = "Save XEX", Width = 75, Enabled = false };
+            _btnSaveXex = new Button { Text = "Save XEX", Width = DpiHelper.Scale(this, 75), Height = DpiHelper.Scale(this, 26), Enabled = false };
             pathPanel.Controls.Add(_btnSaveXex);
 
             mainLayout.Controls.Add(pathPanel, 0, 0);
             mainLayout.SetColumnSpan(pathPanel, 3);
 
             // Row 1: Labels and Text ID
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 26)));
             mainLayout.Controls.Add(new Label { Text = "Weapon Sets:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft }, 0, 1);
 
             var textIdPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
-            textIdPanel.Controls.Add(new Label { Text = "Weapons in Set:      Text ID: 0x", AutoSize = true, Margin = new Padding(0, 6, 0, 0) });
+            textIdPanel.Controls.Add(new Label { Text = "Weapons in Set:      Text ID: 0x", AutoSize = true, Margin = new Padding(0, DpiHelper.Scale(this, 6), 0, 0) });
 
-            _txtTextId = new TextBox { Width = 60, MaxLength = 4, CharacterCasing = CharacterCasing.Upper, Enabled = false };
+            _txtTextId = new TextBox { Width = DpiHelper.Scale(this, 60), MaxLength = 4, CharacterCasing = CharacterCasing.Upper, Enabled = false };
             _txtTextId.Leave += (_, __) => OnTextIdChanged();
             _txtTextId.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) OnTextIdChanged(); };
             textIdPanel.Controls.Add(_txtTextId);
 
-            _chkBeginner = new CheckBox { Text = "Beginner (auto-fill ammo/prop)", AutoSize = true, Checked = true, Margin = new Padding(20, 4, 0, 0) };
+            _chkBeginner = new CheckBox { Text = "Beginner (auto-fill ammo/prop)", AutoSize = true, Checked = true, Margin = new Padding(DpiHelper.Scale(this, 20), DpiHelper.Scale(this, 4), 0, 0) };
             _chkBeginner.CheckedChanged += (_, __) => _beginnerMode = _chkBeginner.Checked;
             textIdPanel.Controls.Add(_chkBeginner);
 
@@ -151,7 +154,7 @@ namespace XBLA_Setup_Editor
             mainLayout.SetColumnSpan(_dgvWeapons, 2);
 
             // Row 3: Log label
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 22)));
             var lblLog = new Label { Text = "Log:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft };
             mainLayout.Controls.Add(lblLog, 0, 3);
             mainLayout.SetColumnSpan(lblLog, 3);
@@ -164,7 +167,7 @@ namespace XBLA_Setup_Editor
                 Multiline = true,
                 ScrollBars = ScrollBars.Both,
                 ReadOnly = true,
-                Font = new Font("Consolas", 9),
+                Font = new Font("Consolas", 9 * DpiHelper.GetScaleFactor(this)),
                 WordWrap = false
             };
             mainLayout.Controls.Add(_txtLog, 0, 4);
@@ -243,7 +246,7 @@ namespace XBLA_Setup_Editor
             {
                 Name = "Slot",
                 HeaderText = "#",
-                Width = 30,
+                Width = DpiHelper.Scale(this, 30),
                 ReadOnly = true
             };
             _dgvWeapons.Columns.Add(colSlot);
@@ -277,7 +280,7 @@ namespace XBLA_Setup_Editor
             {
                 Name = "AmmoCount",
                 HeaderText = "Ammo",
-                Width = 50
+                Width = DpiHelper.Scale(this, 50)
             };
             _dgvWeapons.Columns.Add(colAmmoCount);
 
@@ -286,7 +289,7 @@ namespace XBLA_Setup_Editor
             {
                 Name = "HasProp",
                 HeaderText = "Prop?",
-                Width = 45
+                Width = DpiHelper.Scale(this, 45)
             };
             _dgvWeapons.Columns.Add(colHasProp);
 
@@ -307,7 +310,7 @@ namespace XBLA_Setup_Editor
             {
                 Name = "Scale",
                 HeaderText = "Scale",
-                Width = 50
+                Width = DpiHelper.Scale(this, 50)
             };
             _dgvWeapons.Columns.Add(colScale);
         }

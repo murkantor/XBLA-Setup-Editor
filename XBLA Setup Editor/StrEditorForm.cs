@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 
@@ -26,16 +27,18 @@ namespace XBLA_Setup_Editor
             InitializeComponent();
 
             Text = "STR Editor";
-            Width = 925;
-            Height = 728;
+            AutoScaleDimensions = new SizeF(96F, 96F);
+            AutoScaleMode = AutoScaleMode.None;
+            Width = DpiHelper.Scale(this, 925);
+            Height = DpiHelper.Scale(this, 728);
 
-            topPanel = new Panel { Dock = DockStyle.Top, Height = 40, Padding = new Padding(8) };
+            topPanel = new Panel { Dock = DockStyle.Top, Height = DpiHelper.Scale(this, 40), Padding = new Padding(DpiHelper.Scale(this, 8)) };
 
-            btnOpen = new Button { Text = "Open", AutoSize = true, Left = 8, Top = 8 };
-            btnSave = new Button { Text = "Save", AutoSize = true, Left = 90, Top = 8 };
-            btnSaveAs = new Button { Text = "Save As", AutoSize = true, Left = 170, Top = 8 };
-            btnAddEntry = new Button { Text = "+", Width = 32, Height = 24, Left = 260, Top = 8 };
-            btnRemoveLast = new Button { Text = "-", Width = 32, Height = 24, Left = 296, Top = 8 };
+            btnOpen = new Button { Text = "Open", AutoSize = true, Left = DpiHelper.Scale(this, 8), Top = DpiHelper.Scale(this, 8) };
+            btnSave = new Button { Text = "Save", AutoSize = true, Left = DpiHelper.Scale(this, 90), Top = DpiHelper.Scale(this, 8) };
+            btnSaveAs = new Button { Text = "Save As", AutoSize = true, Left = DpiHelper.Scale(this, 170), Top = DpiHelper.Scale(this, 8) };
+            btnAddEntry = new Button { Text = "+", Width = DpiHelper.Scale(this, 32), Height = DpiHelper.Scale(this, 24), Left = DpiHelper.Scale(this, 260), Top = DpiHelper.Scale(this, 8) };
+            btnRemoveLast = new Button { Text = "-", Width = DpiHelper.Scale(this, 32), Height = DpiHelper.Scale(this, 24), Left = DpiHelper.Scale(this, 296), Top = DpiHelper.Scale(this, 8) };
 
             topPanel.Controls.Add(btnOpen);
             topPanel.Controls.Add(btnSave);
@@ -74,14 +77,14 @@ namespace XBLA_Setup_Editor
             {
                 HeaderText = "Bank",
                 DataPropertyName = nameof(StrEntry.Bank),
-                Width = 60
+                Width = DpiHelper.Scale(this, 60)
             });
 
             grid.Columns.Add(new DataGridViewTextBoxColumn
             {
                 HeaderText = "ID",
                 DataPropertyName = nameof(StrEntry.Id),
-                Width = 60
+                Width = DpiHelper.Scale(this, 60)
             });
 
             grid.Columns.Add(new DataGridViewTextBoxColumn

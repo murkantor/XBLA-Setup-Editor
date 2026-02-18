@@ -142,24 +142,26 @@ namespace XBLA_Setup_Editor
         {
             // ---- Window Configuration ----
             Text = "XBLA Setup Editor";
-            Width = 1400;
-            Height = 900;
+            AutoScaleDimensions = new SizeF(96F, 96F);
+            AutoScaleMode = AutoScaleMode.None;
+            Width = DpiHelper.Scale(this, 1400);
+            Height = DpiHelper.Scale(this, 900);
             StartPosition = FormStartPosition.CenterScreen;
-            MinimumSize = new Size(1000, 700);
+            MinimumSize = new Size(DpiHelper.Scale(this, 1000), DpiHelper.Scale(this, 700));
 
             // ---- Easter Egg: Hidden Credits Button ----
             // Small invisible button in the upper right corner that shows credits when clicked
             var btnCredits = new Button
             {
                 Text = "",
-                Size = new Size(16, 16),
+                Size = new Size(DpiHelper.Scale(this, 16), DpiHelper.Scale(this, 16)),
                 Anchor = AnchorStyles.Top | AnchorStyles.Right,
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(240, 240, 240),
                 Cursor = Cursors.Hand
             };
             btnCredits.FlatAppearance.BorderSize = 0;
-            btnCredits.Location = new Point(ClientSize.Width - btnCredits.Width - 4, 4);
+            btnCredits.Location = new Point(ClientSize.Width - btnCredits.Width - DpiHelper.Scale(this, 4), DpiHelper.Scale(this, 4));
             btnCredits.Click += (_, __) => ShowCredits();
             Controls.Add(btnCredits);
             btnCredits.BringToFront();
@@ -175,21 +177,21 @@ namespace XBLA_Setup_Editor
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
                 RowCount = 4,
-                Padding = new Padding(8)
+                Padding = new Padding(DpiHelper.Scale(this, 8))
             };
 
             // Row 0: XEX file controls (fixed height)
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 36)));
             var xexPanel = CreateXexPanel();
             mainLayout.Controls.Add(xexPanel, 0, 0);
 
             // Row 1: 21990 file controls (fixed height)
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 36)));
             var panel21990 = Create21990Panel();
             mainLayout.Controls.Add(panel21990, 0, 1);
 
             // Row 2: Status bar (fixed height)
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 24)));
             _lblStatus = new Label
             {
                 Dock = DockStyle.Fill,
@@ -249,28 +251,28 @@ namespace XBLA_Setup_Editor
             {
                 Text = "XEX File:",
                 AutoSize = true,
-                Margin = new Padding(0, 8, 5, 0)
+                Margin = new Padding(0, DpiHelper.Scale(this, 8), DpiHelper.Scale(this, 5), 0)
             });
 
             // Text box for file path (can be typed or set via Browse)
-            _txtXexPath = new TextBox { Width = 500 };
+            _txtXexPath = new TextBox { Width = DpiHelper.Scale(this, 500), Height = DpiHelper.Scale(this, 23) };
             panel.Controls.Add(_txtXexPath);
 
             // Browse button - opens file dialog
-            _btnBrowseXex = new Button { Text = "Browse...", Width = 75 };
+            _btnBrowseXex = new Button { Text = "Browse...", Width = DpiHelper.Scale(this, 75), Height = DpiHelper.Scale(this, 28) };
             _btnBrowseXex.Click += BtnBrowseXex_Click;
             panel.Controls.Add(_btnBrowseXex);
 
             // Load button - reads XEX into memory and notifies tabs
-            _btnLoadXex = new Button { Text = "Load", Width = 60 };
+            _btnLoadXex = new Button { Text = "Load", Width = DpiHelper.Scale(this, 60), Height = DpiHelper.Scale(this, 28) };
             _btnLoadXex.Click += BtnLoadXex_Click;
             panel.Controls.Add(_btnLoadXex);
 
             // Spacer between Load and Save
-            panel.Controls.Add(new Label { Text = "  ", AutoSize = true, Margin = new Padding(10, 0, 10, 0) });
+            panel.Controls.Add(new Label { Text = "  ", AutoSize = true, Margin = new Padding(DpiHelper.Scale(this, 10), 0, DpiHelper.Scale(this, 10), 0) });
 
             // Save As button - saves modified XEX to new file
-            _btnSave = new Button { Text = "Save As...", Width = 80, Enabled = false };
+            _btnSave = new Button { Text = "Save As...", Width = DpiHelper.Scale(this, 80), Height = DpiHelper.Scale(this, 28), Enabled = false };
             _btnSave.Click += BtnSave_Click;
             panel.Controls.Add(_btnSave);
 
@@ -295,20 +297,20 @@ namespace XBLA_Setup_Editor
             {
                 Text = "21990 File:",
                 AutoSize = true,
-                Margin = new Padding(0, 8, 5, 0)
+                Margin = new Padding(0, DpiHelper.Scale(this, 8), DpiHelper.Scale(this, 5), 0)
             });
 
             // Text box for file path
-            _txt21990Path = new TextBox { Width = 500 };
+            _txt21990Path = new TextBox { Width = DpiHelper.Scale(this, 500), Height = DpiHelper.Scale(this, 23) };
             panel.Controls.Add(_txt21990Path);
 
             // Browse button
-            _btnBrowse21990 = new Button { Text = "Browse...", Width = 75 };
+            _btnBrowse21990 = new Button { Text = "Browse...", Width = DpiHelper.Scale(this, 75), Height = DpiHelper.Scale(this, 28) };
             _btnBrowse21990.Click += BtnBrowse21990_Click;
             panel.Controls.Add(_btnBrowse21990);
 
             // Load button
-            _btnLoad21990 = new Button { Text = "Load", Width = 60 };
+            _btnLoad21990 = new Button { Text = "Load", Width = DpiHelper.Scale(this, 60), Height = DpiHelper.Scale(this, 28) };
             _btnLoad21990.Click += BtnLoad21990_Click;
             panel.Controls.Add(_btnLoad21990);
 
@@ -702,8 +704,8 @@ namespace XBLA_Setup_Editor
             var creditsForm = new Form
             {
                 Text = "Credits & Thanks",
-                Width = 400,
-                Height = 350,
+                Width = DpiHelper.Scale(this, 400),
+                Height = DpiHelper.Scale(this, 350),
                 StartPosition = FormStartPosition.CenterParent,
                 FormBorderStyle = FormBorderStyle.FixedDialog,
                 MaximizeBox = false,
@@ -716,7 +718,7 @@ namespace XBLA_Setup_Editor
                 ReadOnly = true,
                 ScrollBars = ScrollBars.Vertical,
                 Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 10),
+                Font = new Font("Segoe UI", 10 * DpiHelper.GetScaleFactor(this)),
                 BackColor = Color.White,
                 Text =
                     "XBLA Setup Editor\r\n" +
@@ -753,7 +755,7 @@ namespace XBLA_Setup_Editor
             {
                 Text = "Close",
                 Dock = DockStyle.Bottom,
-                Height = 32
+                Height = DpiHelper.Scale(this, 32)
             };
             btnClose.Click += (_, __) => creditsForm.Close();
 
@@ -812,3 +814,4 @@ namespace XBLA_Setup_Editor
         }
     }
 }
+

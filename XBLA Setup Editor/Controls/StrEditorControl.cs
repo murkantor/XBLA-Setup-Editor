@@ -119,11 +119,11 @@ namespace XBLA_Setup_Editor.Controls
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
                 RowCount = 3,
-                Padding = new Padding(8)
+                Padding = new Padding(DpiHelper.Scale(this, 8))
             };
 
             // Row 0: Toolbar with Open, Save, Save As, +, - buttons
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 36)));
             var toolbar = CreateToolbar();
             mainLayout.Controls.Add(toolbar, 0, 0);
 
@@ -142,7 +142,7 @@ namespace XBLA_Setup_Editor.Controls
             mainLayout.Controls.Add(_grid, 0, 1);
 
             // Row 2: Status bar showing file name and entry count
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 24));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 24)));
             _lblStatus = new Label
             {
                 Dock = DockStyle.Fill,
@@ -173,15 +173,15 @@ namespace XBLA_Setup_Editor.Controls
             };
 
             // File operations
-            _btnOpen = new Button { Text = "Open", Width = 70 };
+            _btnOpen = new Button { Text = "Open", Width = DpiHelper.Scale(this, 70), Height = DpiHelper.Scale(this, 28) };
             _btnOpen.Click += BtnOpen_Click;
             toolbar.Controls.Add(_btnOpen);
 
-            _btnSave = new Button { Text = "Save", Width = 70 };
+            _btnSave = new Button { Text = "Save", Width = DpiHelper.Scale(this, 70), Height = DpiHelper.Scale(this, 28) };
             _btnSave.Click += BtnSave_Click;
             toolbar.Controls.Add(_btnSave);
 
-            _btnSaveAs = new Button { Text = "Save As", Width = 70 };
+            _btnSaveAs = new Button { Text = "Save As", Width = DpiHelper.Scale(this, 70), Height = DpiHelper.Scale(this, 28) };
             _btnSaveAs.Click += BtnSaveAs_Click;
             toolbar.Controls.Add(_btnSaveAs);
 
@@ -189,11 +189,11 @@ namespace XBLA_Setup_Editor.Controls
             toolbar.Controls.Add(new Label { Text = "  ", AutoSize = true });
 
             // Entry management
-            _btnAddEntry = new Button { Text = "+", Width = 32 };
+            _btnAddEntry = new Button { Text = "+", Width = DpiHelper.Scale(this, 32), Height = DpiHelper.Scale(this, 28) };
             _btnAddEntry.Click += BtnAddEntry_Click;
             toolbar.Controls.Add(_btnAddEntry);
 
-            _btnRemoveLast = new Button { Text = "-", Width = 32 };
+            _btnRemoveLast = new Button { Text = "-", Width = DpiHelper.Scale(this, 32), Height = DpiHelper.Scale(this, 28) };
             _btnRemoveLast.Click += BtnRemoveLast_Click;
             toolbar.Controls.Add(_btnRemoveLast);
 
@@ -222,7 +222,7 @@ namespace XBLA_Setup_Editor.Controls
             {
                 HeaderText = "Bank",
                 DataPropertyName = nameof(StrEntry.Bank),
-                Width = 60
+                Width = DpiHelper.Scale(this, 60)
             });
 
             // ID column
@@ -230,7 +230,7 @@ namespace XBLA_Setup_Editor.Controls
             {
                 HeaderText = "ID",
                 DataPropertyName = nameof(StrEntry.Id),
-                Width = 60
+                Width = DpiHelper.Scale(this, 60)
             });
 
             // Text column (fills remaining space)

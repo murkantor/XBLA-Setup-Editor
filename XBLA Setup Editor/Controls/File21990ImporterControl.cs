@@ -85,18 +85,18 @@ namespace XBLA_Setup_Editor.Controls
                 Dock = DockStyle.Fill,
                 ColumnCount = 4,
                 RowCount = 12,
-                Padding = new Padding(8)
+                Padding = new Padding(DpiHelper.Scale(this, 8))
             };
 
-            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));
+            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DpiHelper.Scale(this, 90)));
             mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));
-            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));
+            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DpiHelper.Scale(this, 90)));
+            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DpiHelper.Scale(this, 90)));
 
             int row = 0;
 
             // Row 0: Options and Apply button
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 32)));
             var optionsPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, AutoSize = true };
             _chkApplyMenuData = new CheckBox { Text = "Apply Folder/Icon Text", Checked = true, AutoSize = true };
             _chkApplySkyData = new CheckBox { Text = "Apply Sky/Fog", Checked = true, AutoSize = true };
@@ -117,7 +117,7 @@ namespace XBLA_Setup_Editor.Controls
             row++;
 
             // Row 2: Menu Label
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 22)));
             var lblMenu = new Label { Text = "Scanned Menu Entries (Folder/Icon):", Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft };
             mainLayout.Controls.Add(lblMenu, 0, row);
             mainLayout.SetColumnSpan(lblMenu, 4);
@@ -126,16 +126,16 @@ namespace XBLA_Setup_Editor.Controls
             // Row 3: Menu List
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 25));
             _lvMenuEntries = new ListView { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, GridLines = true };
-            _lvMenuEntries.Columns.Add("Level ID", 60);
-            _lvMenuEntries.Columns.Add("Name", 80);
-            _lvMenuEntries.Columns.Add("Folder Text", 80);
-            _lvMenuEntries.Columns.Add("Icon Text", 80);
+            _lvMenuEntries.Columns.Add("Level ID", DpiHelper.Scale(this, 60));
+            _lvMenuEntries.Columns.Add("Name", DpiHelper.Scale(this, 80));
+            _lvMenuEntries.Columns.Add("Folder Text", DpiHelper.Scale(this, 80));
+            _lvMenuEntries.Columns.Add("Icon Text", DpiHelper.Scale(this, 80));
             mainLayout.Controls.Add(_lvMenuEntries, 0, row);
             mainLayout.SetColumnSpan(_lvMenuEntries, 4);
             row++;
 
             // Row 4: Sky Label
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 22)));
             var lblSky = new Label { Text = "Sky Entries:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft };
             mainLayout.Controls.Add(lblSky, 0, row);
             mainLayout.SetColumnSpan(lblSky, 4);
@@ -144,15 +144,15 @@ namespace XBLA_Setup_Editor.Controls
             // Row 5: Sky List
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 25));
             _lvSkyEntries = new ListView { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, GridLines = true };
-            _lvSkyEntries.Columns.Add("#", 30);
-            _lvSkyEntries.Columns.Add("Level", 60);
-            _lvSkyEntries.Columns.Add("Sky RGB", 80);
+            _lvSkyEntries.Columns.Add("#", DpiHelper.Scale(this, 30));
+            _lvSkyEntries.Columns.Add("Level", DpiHelper.Scale(this, 60));
+            _lvSkyEntries.Columns.Add("Sky RGB", DpiHelper.Scale(this, 80));
             mainLayout.Controls.Add(_lvSkyEntries, 0, row);
             mainLayout.SetColumnSpan(_lvSkyEntries, 4);
             row++;
 
             // Row 6: Music Label
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 22)));
             var lblMusic = new Label { Text = "Music Entries:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft };
             mainLayout.Controls.Add(lblMusic, 0, row);
             mainLayout.SetColumnSpan(lblMusic, 4);
@@ -161,15 +161,15 @@ namespace XBLA_Setup_Editor.Controls
             // Row 7: Music List
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 25));
             _lvMusicEntries = new ListView { Dock = DockStyle.Fill, View = View.Details, FullRowSelect = true, GridLines = true };
-            _lvMusicEntries.Columns.Add("#", 30);
-            _lvMusicEntries.Columns.Add("Level", 60);
-            _lvMusicEntries.Columns.Add("Main", 60);
+            _lvMusicEntries.Columns.Add("#", DpiHelper.Scale(this, 30));
+            _lvMusicEntries.Columns.Add("Level", DpiHelper.Scale(this, 60));
+            _lvMusicEntries.Columns.Add("Main", DpiHelper.Scale(this, 60));
             mainLayout.Controls.Add(_lvMusicEntries, 0, row);
             mainLayout.SetColumnSpan(_lvMusicEntries, 4);
             row++;
 
             // Row 8: Log Label
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 22)));
             var lblLog = new Label { Text = "Log:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft };
             mainLayout.Controls.Add(lblLog, 0, row);
             mainLayout.SetColumnSpan(lblLog, 4);
@@ -183,7 +183,7 @@ namespace XBLA_Setup_Editor.Controls
                 Multiline = true,
                 ScrollBars = ScrollBars.Both,
                 ReadOnly = true,
-                Font = new Font("Consolas", 9),
+                Font = new Font("Consolas", 9 * DpiHelper.GetScaleFactor(this)),
                 WordWrap = false
             };
             mainLayout.Controls.Add(_txtLog, 0, row);

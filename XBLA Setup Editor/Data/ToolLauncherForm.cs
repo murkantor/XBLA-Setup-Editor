@@ -9,32 +9,34 @@ namespace XBLA_Setup_Editor
         public ToolLauncherForm()
         {
             Text = "XBLA Setup Editor - Tools";
-            Width = 420;
-            Height = 420;
+            AutoScaleDimensions = new SizeF(96F, 96F);
+            AutoScaleMode = AutoScaleMode.None;
+            Width = DpiHelper.Scale(this, 420);
+            Height = DpiHelper.Scale(this, 420);
             StartPosition = FormStartPosition.CenterScreen;
 
             var layout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                Padding = new Padding(12),
+                Padding = new Padding(DpiHelper.Scale(this, 12)),
                 ColumnCount = 1,
                 RowCount = 7
             };
 
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 50)));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 50)));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 50)));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 50)));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 50)));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 50)));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
-            var btnStr = new Button { Text = "STR Editor", Dock = DockStyle.Fill, Height = 40 };
-            var btnSetup = new Button { Text = "Setup Patching", Dock = DockStyle.Fill, Height = 40 };
-            var btn21990 = new Button { Text = "Import 21990 File", Dock = DockStyle.Fill, Height = 40 };
-            var btnXexExtend = new Button { Text = "XEX Extender", Dock = DockStyle.Fill, Height = 40 };
-            var btnMPWeapons = new Button { Text = "MP Weapon Set Editor", Dock = DockStyle.Fill, Height = 40 };
-            var btnWeaponStats = new Button { Text = "Weapon Stats Editor", Dock = DockStyle.Fill, Height = 40 };
+            var btnStr = new Button { Text = "STR Editor", Dock = DockStyle.Fill, Height = DpiHelper.Scale(this, 40) };
+            var btnSetup = new Button { Text = "Setup Patching", Dock = DockStyle.Fill, Height = DpiHelper.Scale(this, 40) };
+            var btn21990 = new Button { Text = "Import 21990 File", Dock = DockStyle.Fill, Height = DpiHelper.Scale(this, 40) };
+            var btnXexExtend = new Button { Text = "XEX Extender", Dock = DockStyle.Fill, Height = DpiHelper.Scale(this, 40) };
+            var btnMPWeapons = new Button { Text = "MP Weapon Set Editor", Dock = DockStyle.Fill, Height = DpiHelper.Scale(this, 40) };
+            var btnWeaponStats = new Button { Text = "Weapon Stats Editor", Dock = DockStyle.Fill, Height = DpiHelper.Scale(this, 40) };
 
             btnStr.Click += (_, __) => new StrEditorForm().Show(this);
             btnSetup.Click += (_, __) => new SetupPatchingForm().Show(this);

@@ -36,6 +36,9 @@ namespace XBLA_Setup_Editor
         [STAThread]
         static void Main()
         {
+            // Enable high DPI awareness for proper scaling on high-resolution displays
+            Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+
             // Initialize application configuration (enables visual styles, etc.)
             ApplicationConfiguration.Initialize();
 

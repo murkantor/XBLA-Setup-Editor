@@ -94,14 +94,14 @@ namespace XBLA_Setup_Editor.Controls
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
                 RowCount = 4,
-                Padding = new Padding(8)
+                Padding = new Padding(DpiHelper.Scale(this, 8))
             };
 
             mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 90));
+            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DpiHelper.Scale(this, 90)));
 
             // Row 0: Options and Apply button
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 36)));
             var optionsPanel = CreateOptionsPanel();
             mainLayout.Controls.Add(optionsPanel, 0, 0);
             _btnApply = new Button { Text = "Apply", Dock = DockStyle.Fill, Enabled = false };
@@ -134,7 +134,7 @@ namespace XBLA_Setup_Editor.Controls
             mainLayout.SetColumnSpan(_tabControl, 2);
 
             // Row 2: Log label
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 22)));
             var lblLog = new Label { Text = "Log:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft };
             mainLayout.Controls.Add(lblLog, 0, 2);
             mainLayout.SetColumnSpan(lblLog, 2);
@@ -147,7 +147,7 @@ namespace XBLA_Setup_Editor.Controls
                 Multiline = true,
                 ScrollBars = ScrollBars.Both,
                 ReadOnly = true,
-                Font = new Font("Consolas", 9),
+                Font = new Font("Consolas", 9 * DpiHelper.GetScaleFactor(this)),
                 WordWrap = false
             };
             mainLayout.Controls.Add(_txtLog, 0, 3);

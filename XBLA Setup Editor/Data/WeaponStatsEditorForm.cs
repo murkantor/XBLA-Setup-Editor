@@ -31,8 +31,10 @@ namespace XBLA_Setup_Editor
         public WeaponStatsEditorForm()
         {
             Text = "Weapon Stats Editor";
-            Width = 1400;
-            Height = 800;
+            AutoScaleDimensions = new SizeF(96F, 96F);
+            AutoScaleMode = AutoScaleMode.None;
+            Width = DpiHelper.Scale(this, 1400);
+            Height = DpiHelper.Scale(this, 800);
             StartPosition = FormStartPosition.CenterParent;
 
             var mainLayout = new TableLayoutPanel
@@ -40,29 +42,29 @@ namespace XBLA_Setup_Editor
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
                 RowCount = 4,
-                Padding = new Padding(12)
+                Padding = new Padding(DpiHelper.Scale(this, 12))
             };
 
             // Row 0: XEX file path and controls
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 36)));
             var pathPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
-            pathPanel.Controls.Add(new Label { Text = "XEX File:", AutoSize = true, Margin = new Padding(0, 6, 5, 0) });
-            _txtXexPath = new TextBox { Width = 500 };
+            pathPanel.Controls.Add(new Label { Text = "XEX File:", AutoSize = true, Margin = new Padding(0, DpiHelper.Scale(this, 6), DpiHelper.Scale(this, 5), 0) });
+            _txtXexPath = new TextBox { Width = DpiHelper.Scale(this, 500), Height = DpiHelper.Scale(this, 23) };
             pathPanel.Controls.Add(_txtXexPath);
-            var btnBrowse = new Button { Text = "Browse...", Width = 75 };
+            var btnBrowse = new Button { Text = "Browse...", Width = DpiHelper.Scale(this, 75), Height = DpiHelper.Scale(this, 28) };
             pathPanel.Controls.Add(btnBrowse);
-            _btnLoadXex = new Button { Text = "Load", Width = 60 };
+            _btnLoadXex = new Button { Text = "Load", Width = DpiHelper.Scale(this, 60), Height = DpiHelper.Scale(this, 28) };
             pathPanel.Controls.Add(_btnLoadXex);
-            _chkBackup = new CheckBox { Text = "Backup", Checked = true, AutoSize = true, Margin = new Padding(10, 6, 0, 0) };
+            _chkBackup = new CheckBox { Text = "Backup", Checked = true, AutoSize = true, Margin = new Padding(DpiHelper.Scale(this, 10), DpiHelper.Scale(this, 6), 0, 0) };
             pathPanel.Controls.Add(_chkBackup);
-            _btnSaveXex = new Button { Text = "Save XEX", Width = 75, Enabled = false };
+            _btnSaveXex = new Button { Text = "Save XEX", Width = DpiHelper.Scale(this, 75), Height = DpiHelper.Scale(this, 28), Enabled = false };
             pathPanel.Controls.Add(_btnSaveXex);
-            pathPanel.Controls.Add(new Label { Text = "  |  ", AutoSize = true, Margin = new Padding(5, 6, 5, 0) });
-            _btnImport21990 = new Button { Text = "Import 21990...", Width = 100 };
+            pathPanel.Controls.Add(new Label { Text = "  |  ", AutoSize = true, Margin = new Padding(DpiHelper.Scale(this, 5), DpiHelper.Scale(this, 6), DpiHelper.Scale(this, 5), 0) });
+            _btnImport21990 = new Button { Text = "Import 21990...", Width = DpiHelper.Scale(this, 100), Height = DpiHelper.Scale(this, 28) };
             pathPanel.Controls.Add(_btnImport21990);
-            _chkUseXblaLayout = new CheckBox { Text = "Use XBLA Layout", Checked = false, AutoSize = true, Margin = new Padding(10, 6, 0, 0) };
+            _chkUseXblaLayout = new CheckBox { Text = "Use XBLA Layout", Checked = false, AutoSize = true, Margin = new Padding(DpiHelper.Scale(this, 10), DpiHelper.Scale(this, 6), 0, 0) };
             pathPanel.Controls.Add(_chkUseXblaLayout);
-            _chkPreserveRamAddrs = new CheckBox { Text = "Preserve XBLA RAM Addrs", Checked = true, AutoSize = true, Margin = new Padding(10, 6, 0, 0) };
+            _chkPreserveRamAddrs = new CheckBox { Text = "Preserve XBLA RAM Addrs", Checked = true, AutoSize = true, Margin = new Padding(DpiHelper.Scale(this, 10), DpiHelper.Scale(this, 6), 0, 0) };
             pathPanel.Controls.Add(_chkPreserveRamAddrs);
             mainLayout.Controls.Add(pathPanel, 0, 0);
 
@@ -94,7 +96,7 @@ namespace XBLA_Setup_Editor
             mainLayout.Controls.Add(_tabControl, 0, 1);
 
             // Row 2: Log label
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 22)));
             var lblLog = new Label { Text = "Log:", Dock = DockStyle.Fill, TextAlign = ContentAlignment.BottomLeft };
             mainLayout.Controls.Add(lblLog, 0, 2);
 
@@ -106,7 +108,7 @@ namespace XBLA_Setup_Editor
                 Multiline = true,
                 ScrollBars = ScrollBars.Both,
                 ReadOnly = true,
-                Font = new Font("Consolas", 9),
+                Font = new Font("Consolas", 9 * DpiHelper.GetScaleFactor(this)),
                 WordWrap = false
             };
             mainLayout.Controls.Add(_txtLog, 0, 3);

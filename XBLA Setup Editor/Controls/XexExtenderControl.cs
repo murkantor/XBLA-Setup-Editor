@@ -78,38 +78,38 @@ namespace XBLA_Setup_Editor.Controls
             var mainLayout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                Padding = new Padding(8),
+                Padding = new Padding(DpiHelper.Scale(this, 8)),
                 RowCount = 6,
                 ColumnCount = 4
             };
 
-            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
+            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DpiHelper.Scale(this, 100)));
             mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80));
-            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
+            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DpiHelper.Scale(this, 80)));
+            mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, DpiHelper.Scale(this, 100)));
 
             int row = 0;
 
             // Row 0: Data file to append
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30)));
             mainLayout.Controls.Add(new Label { Text = "Data File:", Anchor = AnchorStyles.Left, AutoSize = true }, 0, row);
             _txtDataFile = new TextBox { Dock = DockStyle.Fill, ReadOnly = true };
             mainLayout.Controls.Add(_txtDataFile, 1, row);
             mainLayout.SetColumnSpan(_txtDataFile, 2);
-            var btnBrowseData = new Button { Text = "Browse...", Width = 80 };
+            var btnBrowseData = new Button { Text = "Browse...", Width = DpiHelper.Scale(this, 80), Height = DpiHelper.Scale(this, 25) };
             btnBrowseData.Click += BtnBrowseData_Click;
             mainLayout.Controls.Add(btnBrowseData, 3, row);
             row++;
 
             // Row 1: Options and buttons
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 35));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 35)));
             var optionsPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
             _chkRecalcSha1 = new CheckBox { Text = "Recalculate SHA1 hash", Checked = false, AutoSize = true };
             optionsPanel.Controls.Add(_chkRecalcSha1);
-            _btnAnalyze = new Button { Text = "Analyze", Width = 100, Enabled = false };
+            _btnAnalyze = new Button { Text = "Analyze", Width = DpiHelper.Scale(this, 100), Height = DpiHelper.Scale(this, 28), Enabled = false };
             _btnAnalyze.Click += BtnAnalyze_Click;
             optionsPanel.Controls.Add(_btnAnalyze);
-            _btnExtend = new Button { Text = "Extend XEX", Width = 100, Enabled = false };
+            _btnExtend = new Button { Text = "Extend XEX", Width = DpiHelper.Scale(this, 100), Height = DpiHelper.Scale(this, 28), Enabled = false };
             _btnExtend.Click += BtnExtend_Click;
             optionsPanel.Controls.Add(_btnExtend);
             mainLayout.Controls.Add(optionsPanel, 0, row);
@@ -117,22 +117,22 @@ namespace XBLA_Setup_Editor.Controls
             row++;
 
             // Row 2: Analysis label
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 130));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 130)));
             mainLayout.Controls.Add(new Label { Text = "Analysis:", Anchor = AnchorStyles.Top | AnchorStyles.Left, AutoSize = true }, 0, row);
             _lblAnalysis = new Label
             {
                 Dock = DockStyle.Fill,
                 AutoSize = false,
                 BorderStyle = BorderStyle.FixedSingle,
-                Font = new Font("Consolas", 9),
-                Padding = new Padding(5)
+                Font = new Font("Consolas", 9 * DpiHelper.GetScaleFactor(this)),
+                Padding = new Padding(DpiHelper.Scale(this, 5))
             };
             mainLayout.Controls.Add(_lblAnalysis, 1, row);
             mainLayout.SetColumnSpan(_lblAnalysis, 3);
             row++;
 
             // Row 3: Log label
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 20));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 20)));
             mainLayout.Controls.Add(new Label { Text = "Log:", Anchor = AnchorStyles.Left, AutoSize = true }, 0, row);
             row++;
 
@@ -143,7 +143,7 @@ namespace XBLA_Setup_Editor.Controls
                 Dock = DockStyle.Fill,
                 Multiline = true,
                 ScrollBars = ScrollBars.Both,
-                Font = new Font("Consolas", 9),
+                Font = new Font("Consolas", 9 * DpiHelper.GetScaleFactor(this)),
                 ReadOnly = true,
                 WordWrap = false
             };
