@@ -369,14 +369,21 @@ namespace XBLA_Setup_Editor
         public static void PlanSplitAcrossTwoXex(byte[] xex, IReadOnlyDictionary<string, int> levelToSize, bool allowMp, bool allowExtendXex, int extendChunkBytes, int align, bool forceRepack, IReadOnlyCollection<string>? alwaysFixedLevels, IReadOnlyList<(int Start, int EndExclusive)>? extraPoolSegments, out IReadOnlyList<Placement> placementsXex1, out List<string> rep1, out List<string> remainingLevels, out IReadOnlyList<Placement> placementsXex2, out List<string> rep2)
         {
             var allLevels = PriorityOrder.Where(l => levelToSize.ContainsKey(l) && levelToSize[l] > 0).ToList();
+            // Cuba cannot be relocated, cannot appear in the game menu, and must always stay in XEX1.
+            // Run the split loop over non-Cuba levels only, but include Cuba in every candidate set so
+            // its fixed-slot pool consumption is correctly accounted for. This ensures Cuba never
+            // becomes the first (or any) mission in XEX2.
+            bool hasCuba = allLevels.Any(l => l.Equals("Cuba", StringComparison.OrdinalIgnoreCase));
+            var splitLevels = allLevels.Where(l => !l.Equals("Cuba", StringComparison.OrdinalIgnoreCase)).ToList();
             int bestSplit = 0; IReadOnlyList<Placement> bestPlacements = Array.Empty<Placement>(); List<string> bestReport = new List<string>();
-            for (int count = 1; count <= allLevels.Count; count++)
+            for (int count = 1; count <= splitLevels.Count; count++)
             {
-                var candidateLevels = allLevels.Take(count).ToList();
+                var candidateLevels = splitLevels.Take(count).ToList();
+                if (hasCuba) candidateLevels.Add("Cuba"); // always include Cuba so its pool footprint is accounted for
                 var testPlacements = PlanHybridPlacements(xex, levelToSize, candidateLevels, allowMp, allowExtendXex, extendChunkBytes, align, forceRepack, alwaysFixedLevels, extraPoolSegments, out var testReport, out var notPlaced);
                 if (notPlaced.Count == 0) { bestSplit = count; bestPlacements = testPlacements; bestReport = testReport; } else break;
             }
-            placementsXex1 = bestPlacements; rep1 = bestReport; remainingLevels = allLevels.Skip(bestSplit).ToList();
+            placementsXex1 = bestPlacements; rep1 = bestReport; remainingLevels = splitLevels.Skip(bestSplit).ToList();
             if (remainingLevels.Count > 0) { rep1.Add(""); rep1.Add($"=== SPLIT POINT: XEX1 has {bestSplit} levels. XEX2 has {remainingLevels.Count}. ==="); }
             placementsXex2 = PlanHybridPlacements(xex, levelToSize, remainingLevels, allowMp, allowExtendXex, extendChunkBytes, align, forceRepack, alwaysFixedLevels, extraPoolSegments, out rep2, out var notPlaced2);
         }
