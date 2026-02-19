@@ -69,6 +69,18 @@ dotnet build
 
 ## License
 
+This project is licensed under the MIT License.
+
+This distribution also includes:
+
+- `setupconv.exe` (MIT License)
+- `xdelta3.exe` (GNU GPL v2 or later)
+
+These components are distributed as separate executables and are not linked
+into this application.
+
+See THIRD_PARTY_LICENSES.txt for details.
+
 This tool is for personal modding use. Please respect other creators' work:
 - Do not distribute setups or mods created by others without permission
 - Always credit original creators when sharing modified work
