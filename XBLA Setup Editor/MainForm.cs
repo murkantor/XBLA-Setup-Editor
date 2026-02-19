@@ -113,6 +113,9 @@ namespace XBLA_Setup_Editor
         /// <summary>Experimental XEX file extension (add data to XEX).</summary>
         private readonly XexExtenderControl _xexExtenderControl;
 
+        /// <summary>MP setup region compactor (removes entries and shifts remaining ones down).</summary>
+        private readonly MpSetupCompactorControl _mpSetupCompactorControl;
+
         /// <summary>Multiplayer weapon set editor.</summary>
         private readonly MPWeaponSetControl _mpWeaponSetControl;
 
@@ -212,6 +215,7 @@ namespace XBLA_Setup_Editor
             _xexExtenderControl = new XexExtenderControl();
             _mpWeaponSetControl = new MPWeaponSetControl();
             _weaponStatsControl = new WeaponStatsControl();
+            _mpSetupCompactorControl = new MpSetupCompactorControl();
 
             // ---- Add Tabs (in display order) ----
             AddTab("STR Editor", _strEditorControl);
@@ -220,6 +224,7 @@ namespace XBLA_Setup_Editor
             AddTab("Skies, Fog and Music", _file21990Control);
             AddTab("Weapon Stats", _weaponStatsControl);
             AddTab("XEX Extender", _xexExtenderControl);
+            AddTab("MP Compactor", _mpSetupCompactorControl);
 
             mainLayout.Controls.Add(_tabControl, 0, 3);
 
@@ -343,7 +348,8 @@ namespace XBLA_Setup_Editor
                 _file21990Control,
                 _xexExtenderControl,
                 _mpWeaponSetControl,
-                _weaponStatsControl
+                _weaponStatsControl,
+                _mpSetupCompactorControl
             };
 
             // Subscribe each tab to the XexLoaded event
@@ -359,6 +365,7 @@ namespace XBLA_Setup_Editor
             _xexExtenderControl.XexModified += OnTabXexModified;
             _mpWeaponSetControl.XexModified += OnTabXexModified;
             _weaponStatsControl.XexModified += OnTabXexModified;
+            _mpSetupCompactorControl.XexModified += OnTabXexModified;
         }
 
         /// <summary>
@@ -495,7 +502,12 @@ namespace XBLA_Setup_Editor
             var dir = Path.GetDirectoryName(_sharedXexPath) ?? "";
             var baseName = Path.GetFileNameWithoutExtension(_sharedXexPath);
             var ext = Path.GetExtension(_sharedXexPath);
-            var suggestedName = $"{baseName}_modified{ext}";
+
+            // Use the batch folder name as the suffix when one is set (matches split XEX naming)
+            var batchFolder = _setupPatchingControl.BatchFolderName;
+            var suggestedName = !string.IsNullOrWhiteSpace(batchFolder)
+                ? $"{baseName}_{batchFolder}{ext}"
+                : $"{baseName}_modified{ext}";
 
             using var sfd = new SaveFileDialog
             {
@@ -548,7 +560,8 @@ namespace XBLA_Setup_Editor
                 _file21990Control,
                 _xexExtenderControl,
                 _mpWeaponSetControl,
-                _weaponStatsControl
+                _weaponStatsControl,
+                _mpSetupCompactorControl
             };
 
             foreach (var tab in xexTabs)
@@ -648,7 +661,8 @@ namespace XBLA_Setup_Editor
                 _file21990Control,
                 _xexExtenderControl,
                 _mpWeaponSetControl,
-                _weaponStatsControl
+                _weaponStatsControl,
+                _mpSetupCompactorControl
             };
 
             foreach (var tab in xexTabs)

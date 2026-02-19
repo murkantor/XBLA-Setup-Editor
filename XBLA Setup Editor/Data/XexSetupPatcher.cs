@@ -87,6 +87,12 @@ namespace XBLA_Setup_Editor
         public static uint FileOffsetToVa(int fileOffset) => VaBase + (uint)fileOffset;
         public const int EndOfXexDefaultStart = 0x00F1B6D0;
 
+        // Cuba setup region - Cuba cannot be re-converted by setupconv (crashes the game),
+        // and its blob contains embedded absolute VA references so it cannot be relocated.
+        // It must always be placed at its original fixed file offset / VA.
+        public const int CubaFileOffset = 0x00D39898;
+        public const int CubaSize       = 0x0000E3A8; // boundary is Streets at 0xD47C40
+
         // --- MENU & BRIEFING CONSTANTS ---
         private const int MENU_XEX_START = 0x71E570;
         private const int MENU_XEX_END = 0x71E8B7;
@@ -223,7 +229,7 @@ namespace XBLA_Setup_Editor
             ["Cuba"] = 0x0084B718,
         };
 
-        public enum RegionKind { FixedSP, SpPool, MpPool, EndOfXex, ExtendedXex }
+        public enum RegionKind { FixedSP, SpPool, MpPool, EndOfXex, ExtendedXex, CompactedMpTail }
         public sealed record Placement(string LevelName, int FileOffset, uint NewVa, int Size, RegionKind Region, bool RequiresRepack);
         private sealed record Segment(int Start, int EndExclusive, RegionKind Kind) { public int Size => EndExclusive - Start; }
 
@@ -272,17 +278,46 @@ namespace XBLA_Setup_Editor
         }
 
         // --- PLANNING METHODS (Condensed) ---
+        // Overload without alwaysFixedLevels or extraPoolSegments - backward compatible.
         public static IReadOnlyList<Placement> PlanHybridPlacements(byte[] xex, IReadOnlyDictionary<string, int> levelToSize, IEnumerable<string> candidateLevels, bool allowMp, bool allowExtendXex, int extendChunkBytes, int align, bool forceRepack, out List<string> reportLines, out List<string> notPlaced)
+            => PlanHybridPlacements(xex, levelToSize, candidateLevels, allowMp, allowExtendXex, extendChunkBytes, align, forceRepack, null, null, out reportLines, out notPlaced);
+
+        // Overload with alwaysFixedLevels but no extraPoolSegments - backward compatible.
+        public static IReadOnlyList<Placement> PlanHybridPlacements(byte[] xex, IReadOnlyDictionary<string, int> levelToSize, IEnumerable<string> candidateLevels, bool allowMp, bool allowExtendXex, int extendChunkBytes, int align, bool forceRepack, IReadOnlyCollection<string>? alwaysFixedLevels, out List<string> reportLines, out List<string> notPlaced)
+            => PlanHybridPlacements(xex, levelToSize, candidateLevels, allowMp, allowExtendXex, extendChunkBytes, align, forceRepack, alwaysFixedLevels, null, out reportLines, out notPlaced);
+
+        // Overload with extraPoolSegments but no alwaysFixedLevels.
+        public static IReadOnlyList<Placement> PlanHybridPlacements(byte[] xex, IReadOnlyDictionary<string, int> levelToSize, IEnumerable<string> candidateLevels, bool allowMp, bool allowExtendXex, int extendChunkBytes, int align, bool forceRepack, IReadOnlyList<(int Start, int EndExclusive)>? extraPoolSegments, out List<string> reportLines, out List<string> notPlaced)
+            => PlanHybridPlacements(xex, levelToSize, candidateLevels, allowMp, allowExtendXex, extendChunkBytes, align, forceRepack, null, extraPoolSegments, out reportLines, out notPlaced);
+
+        // Full overload - alwaysFixedLevels and extraPoolSegments.
+        public static IReadOnlyList<Placement> PlanHybridPlacements(byte[] xex, IReadOnlyDictionary<string, int> levelToSize, IEnumerable<string> candidateLevels, bool allowMp, bool allowExtendXex, int extendChunkBytes, int align, bool forceRepack, IReadOnlyCollection<string>? alwaysFixedLevels, IReadOnlyList<(int Start, int EndExclusive)>? extraPoolSegments, out List<string> reportLines, out List<string> notPlaced)
         {
             reportLines = new List<string>(); notPlaced = new List<string>(); reportLines.Add("=== XEX PATCH PLAN ===");
             uint extensionBaseVa = 0; int extensionBaseFileOffset = xex.Length;
             if (allowExtendXex) { var analysis = XexExtender.Analyze(xex); if (analysis.IsValid) { extensionBaseVa = analysis.EndMemoryAddress; extensionBaseFileOffset = xex.Length; } else allowExtendXex = false; }
             var caps = ComputeFixedRegionCaps(allowMpSpill: true); var segs = new List<Segment>();
+            // Extra pool segments (e.g. freed tail of compacted MP setup region) go first so they are used first.
+            if (extraPoolSegments != null)
+                foreach (var (es, ee) in extraPoolSegments)
+                    if (ee > es) segs.Add(new Segment(es, ee, RegionKind.CompactedMpTail));
             int spFreeStart = SharedReadOnlyEndExclusive; int spFreeEnd = MpHeadersStart;
             if (spFreeEnd > spFreeStart) segs.Add(new Segment(spFreeStart, spFreeEnd, RegionKind.SpPool));
             if (allowMp) { int mpStart = MpHeadersStart; int mpEnd = SetupBlocksEndExclusive; if (mpEnd > mpStart) segs.Add(new Segment(mpStart, mpEnd, RegionKind.MpPool)); }
             var placements = new List<Placement>(); var remaining = new HashSet<string>(candidateLevels, StringComparer.OrdinalIgnoreCase);
             remaining.RemoveWhere(l => { if (!SpPointerOffsets.ContainsKey(l) || !levelToSize.TryGetValue(l, out int s) || s <= 0) return true; return false; });
+
+            // Always-fixed levels go in their original slot regardless of forceRepack.
+            if (alwaysFixedLevels != null)
+            {
+                var alwaysFixed = new HashSet<string>(alwaysFixedLevels, StringComparer.OrdinalIgnoreCase);
+                foreach (var level in PriorityOrder.Where(l => remaining.Contains(l) && alwaysFixed.Contains(l)))
+                {
+                    int size = levelToSize[level]; if (!caps.TryGetValue(level, out int cap)) cap = 0; int origOff = GetOriginalFileOffset(level); if (origOff < 0) continue;
+                    if (size <= cap && (origOff + size) <= SetupBlocksEndExclusive) { placements.Add(new Placement(level, origOff, FileOffsetToVa(origOff), size, RegionKind.FixedSP, false)); remaining.Remove(level); }
+                }
+            }
+
             if (!forceRepack)
             {
                 foreach (var level in PriorityOrder.Where(remaining.Contains))
@@ -318,19 +353,32 @@ namespace XBLA_Setup_Editor
             return placements;
         }
 
+        // Overload without alwaysFixedLevels or extraPoolSegments - backward compatible.
         public static void PlanSplitAcrossTwoXex(byte[] xex, IReadOnlyDictionary<string, int> levelToSize, bool allowMp, bool allowExtendXex, int extendChunkBytes, int align, bool forceRepack, out IReadOnlyList<Placement> placementsXex1, out List<string> rep1, out List<string> remainingLevels, out IReadOnlyList<Placement> placementsXex2, out List<string> rep2)
+            => PlanSplitAcrossTwoXex(xex, levelToSize, allowMp, allowExtendXex, extendChunkBytes, align, forceRepack, null, null, out placementsXex1, out rep1, out remainingLevels, out placementsXex2, out rep2);
+
+        // Overload with alwaysFixedLevels but no extraPoolSegments - backward compatible.
+        public static void PlanSplitAcrossTwoXex(byte[] xex, IReadOnlyDictionary<string, int> levelToSize, bool allowMp, bool allowExtendXex, int extendChunkBytes, int align, bool forceRepack, IReadOnlyCollection<string>? alwaysFixedLevels, out IReadOnlyList<Placement> placementsXex1, out List<string> rep1, out List<string> remainingLevels, out IReadOnlyList<Placement> placementsXex2, out List<string> rep2)
+            => PlanSplitAcrossTwoXex(xex, levelToSize, allowMp, allowExtendXex, extendChunkBytes, align, forceRepack, alwaysFixedLevels, null, out placementsXex1, out rep1, out remainingLevels, out placementsXex2, out rep2);
+
+        // Overload with extraPoolSegments but no alwaysFixedLevels.
+        public static void PlanSplitAcrossTwoXex(byte[] xex, IReadOnlyDictionary<string, int> levelToSize, bool allowMp, bool allowExtendXex, int extendChunkBytes, int align, bool forceRepack, IReadOnlyList<(int Start, int EndExclusive)>? extraPoolSegments, out IReadOnlyList<Placement> placementsXex1, out List<string> rep1, out List<string> remainingLevels, out IReadOnlyList<Placement> placementsXex2, out List<string> rep2)
+            => PlanSplitAcrossTwoXex(xex, levelToSize, allowMp, allowExtendXex, extendChunkBytes, align, forceRepack, null, extraPoolSegments, out placementsXex1, out rep1, out remainingLevels, out placementsXex2, out rep2);
+
+        // Full overload - threads alwaysFixedLevels and extraPoolSegments through to PlanHybridPlacements.
+        public static void PlanSplitAcrossTwoXex(byte[] xex, IReadOnlyDictionary<string, int> levelToSize, bool allowMp, bool allowExtendXex, int extendChunkBytes, int align, bool forceRepack, IReadOnlyCollection<string>? alwaysFixedLevels, IReadOnlyList<(int Start, int EndExclusive)>? extraPoolSegments, out IReadOnlyList<Placement> placementsXex1, out List<string> rep1, out List<string> remainingLevels, out IReadOnlyList<Placement> placementsXex2, out List<string> rep2)
         {
             var allLevels = PriorityOrder.Where(l => levelToSize.ContainsKey(l) && levelToSize[l] > 0).ToList();
             int bestSplit = 0; IReadOnlyList<Placement> bestPlacements = Array.Empty<Placement>(); List<string> bestReport = new List<string>();
             for (int count = 1; count <= allLevels.Count; count++)
             {
                 var candidateLevels = allLevels.Take(count).ToList();
-                var testPlacements = PlanHybridPlacements(xex, levelToSize, candidateLevels, allowMp, allowExtendXex, extendChunkBytes, align, forceRepack, out var testReport, out var notPlaced);
+                var testPlacements = PlanHybridPlacements(xex, levelToSize, candidateLevels, allowMp, allowExtendXex, extendChunkBytes, align, forceRepack, alwaysFixedLevels, extraPoolSegments, out var testReport, out var notPlaced);
                 if (notPlaced.Count == 0) { bestSplit = count; bestPlacements = testPlacements; bestReport = testReport; } else break;
             }
             placementsXex1 = bestPlacements; rep1 = bestReport; remainingLevels = allLevels.Skip(bestSplit).ToList();
             if (remainingLevels.Count > 0) { rep1.Add(""); rep1.Add($"=== SPLIT POINT: XEX1 has {bestSplit} levels. XEX2 has {remainingLevels.Count}. ==="); }
-            placementsXex2 = PlanHybridPlacements(xex, levelToSize, remainingLevels, allowMp, allowExtendXex, extendChunkBytes, align, forceRepack, out rep2, out var notPlaced2);
+            placementsXex2 = PlanHybridPlacements(xex, levelToSize, remainingLevels, allowMp, allowExtendXex, extendChunkBytes, align, forceRepack, alwaysFixedLevels, extraPoolSegments, out rep2, out var notPlaced2);
         }
 
         // =========================================================
@@ -346,7 +394,7 @@ namespace XBLA_Setup_Editor
             IEnumerable<string>? desiredMenuOrder,
             out List<string> reportLines)
         {
-            ApplyHybridCore(inputXexPath, outputXexPath, placements, levelToBlob, allowExtendXex, desiredMenuOrder, out reportLines);
+            ApplyHybridCore(inputXexPath, outputXexPath, placements, levelToBlob, allowExtendXex, desiredMenuOrder, updateMenuAndBriefing: true, out reportLines);
         }
 
         public static void ApplyHybrid(
@@ -357,7 +405,19 @@ namespace XBLA_Setup_Editor
             bool allowExtendXex,
             out List<string> reportLines)
         {
-            ApplyHybridCore(inputXexPath, outputXexPath, placements, levelToBlob, allowExtendXex, null, out reportLines);
+            ApplyHybridCore(inputXexPath, outputXexPath, placements, levelToBlob, allowExtendXex, null, updateMenuAndBriefing: true, out reportLines);
+        }
+
+        public static void ApplyHybrid(
+            string inputXexPath,
+            string outputXexPath,
+            IReadOnlyList<Placement> placements,
+            IReadOnlyDictionary<string, byte[]> levelToBlob,
+            bool allowExtendXex,
+            bool updateMenuAndBriefing,
+            out List<string> reportLines)
+        {
+            ApplyHybridCore(inputXexPath, outputXexPath, placements, levelToBlob, allowExtendXex, null, updateMenuAndBriefing, out reportLines);
         }
 
         private static void ApplyHybridCore(
@@ -367,6 +427,7 @@ namespace XBLA_Setup_Editor
             IReadOnlyDictionary<string, byte[]> levelToBlob,
             bool allowExtendXex,
             IEnumerable<string>? desiredMenuOrder,
+            bool updateMenuAndBriefing,
             out List<string> reportLines)
         {
             byte[] xex = File.ReadAllBytes(inputXexPath);
@@ -401,106 +462,109 @@ namespace XBLA_Setup_Editor
                     levelsBeingWritten.Add(new MenuEntryInfo { LevelId = id, Name = p.LevelName });
             }
 
-            // Custom menu order (optional)
-            if (desiredMenuOrder != null)
-                levelsBeingWritten = ReorderLevels(levelsBeingWritten, desiredMenuOrder, patched, warnings);
-
-            // 2) Build map: LevelId -> menu struct start (canonical destination slots)
-            var menuStructById = BuildMenuStructIndex(xex);
-
-            // 3) Buffer original menu text IDs by LevelId (so we can transplant source texts correctly)
-            var textIdsByLevelId = ReadMenuTextIdsByLevelId(xex, menuStructById, warnings);
-
-            // 4) Image table (if present)
-            int imageTableOffset = FindImageTable(xex, patched, warnings);
-
-            // 5) DISCOVER briefing table indices dynamically for this XEX
-            var briefIdx = BuildBriefingIndexByLevelId(xex, patched, warnings);
-
-            // 6) Buffer original briefing blocks for all visible source levels using discovered indices
-            var origBriefByLevelId = new Dictionary<uint, byte[]>();
-            foreach (var lv in levelsBeingWritten)
+            if (updateMenuAndBriefing)
             {
-                if (briefIdx.TryGetValue(lv.LevelId, out int srcIndex))
+                // Custom menu order (optional)
+                if (desiredMenuOrder != null)
+                    levelsBeingWritten = ReorderLevels(levelsBeingWritten, desiredMenuOrder, patched, warnings);
+
+                // 2) Build map: LevelId -> menu struct start (canonical destination slots)
+                var menuStructById = BuildMenuStructIndex(xex);
+
+                // 3) Buffer original menu text IDs by LevelId (so we can transplant source texts correctly)
+                var textIdsByLevelId = ReadMenuTextIdsByLevelId(xex, menuStructById, warnings);
+
+                // 4) Image table (if present)
+                int imageTableOffset = FindImageTable(xex, patched, warnings);
+
+                // 5) DISCOVER briefing table indices dynamically for this XEX
+                var briefIdx = BuildBriefingIndexByLevelId(xex, patched, warnings);
+
+                // 6) Buffer original briefing blocks for all visible source levels using discovered indices
+                var origBriefByLevelId = new Dictionary<uint, byte[]>();
+                foreach (var lv in levelsBeingWritten)
                 {
-                    int readOffset = BRIEFING_XEX_START + (srcIndex * BRIEFING_ENTRY_SIZE);
-                    var buf = new byte[BRIEFING_ENTRY_SIZE];
-                    Buffer.BlockCopy(xex, readOffset, buf, 0, BRIEFING_ENTRY_SIZE);
-                    origBriefByLevelId[lv.LevelId] = buf;
+                    if (briefIdx.TryGetValue(lv.LevelId, out int srcIndex))
+                    {
+                        int readOffset = BRIEFING_XEX_START + (srcIndex * BRIEFING_ENTRY_SIZE);
+                        var buf = new byte[BRIEFING_ENTRY_SIZE];
+                        Buffer.BlockCopy(xex, readOffset, buf, 0, BRIEFING_ENTRY_SIZE);
+                        origBriefByLevelId[lv.LevelId] = buf;
+                    }
+                    else
+                    {
+                        warnings.Add($"WARN: Could not discover briefing index for {lv.Name} (0x{lv.LevelId:X}).");
+                    }
                 }
-                else
+
+                // 7) Write menu entries INTO DESTINATION SLOTS (by VanillaMenuOrder)
+                int slotsFilled = 0;
+                int n = Math.Min(levelsBeingWritten.Count, VanillaMenuOrder.Length);
+                for (int i = 0; i < n; i++)
                 {
-                    warnings.Add($"WARN: Could not discover briefing index for {lv.Name} (0x{lv.LevelId:X}).");
+                    uint destId = VanillaMenuOrder[i];
+                    if (!menuStructById.TryGetValue(destId, out int menuOffset))
+                    {
+                        warnings.Add($"WARN: Couldn't locate destination menu struct for 0x{destId:X} (slot {i}).");
+                        continue;
+                    }
+
+                    var srcLevel = levelsBeingWritten[i];
+
+                    // transplant text IDs from source level's original struct
+                    ushort folderId = 0;
+                    ushort iconId = 0;
+                    if (textIdsByLevelId.TryGetValue(srcLevel.LevelId, out var txPair))
+                    {
+                        folderId = txPair.folder;
+                        iconId = txPair.icon;
+                    }
+
+                    WriteBE16(xex, menuOffset + 4, folderId);
+                    WriteBE16(xex, menuOffset + 6, iconId);
+                    WriteBE32(xex, menuOffset + 8, srcLevel.LevelId);
+
+                    if (imageTableOffset != -1 && LevelImageIds.TryGetValue(srcLevel.LevelId, out uint imgId))
+                    {
+                        // image table is exactly in Vanilla order
+                        WriteBE32(xex, imageTableOffset + (i * 4), imgId);
+                    }
+
+                    patched.Add($"  Slot {i}: {srcLevel.Name} → dest 0x{destId:X} (Menu/Image updated)");
+                    slotsFilled++;
                 }
+
+                // 8) Clear remaining destination slots (menu + image)
+                for (int i = n; i < VanillaMenuOrder.Length; i++)
+                {
+                    uint destId = VanillaMenuOrder[i];
+                    if (!menuStructById.TryGetValue(destId, out int menuOffset)) continue;
+                    WriteBE16(xex, menuOffset + 4, 0);
+                    WriteBE16(xex, menuOffset + 6, 0);
+                    WriteBE32(xex, menuOffset + 8, 0);
+                    if (imageTableOffset != -1) WriteBE32(xex, imageTableOffset + (i * 4), 0xFFFFFFFF);
+                }
+
+                // 9) Remap briefing blocks using discovered indices (srcId block -> destId canonical idx)
+                for (int i = 0; i < n; i++)
+                {
+                    uint destId = VanillaMenuOrder[i];
+                    uint srcId = levelsBeingWritten[i].LevelId;
+
+                    if (!origBriefByLevelId.TryGetValue(srcId, out var block)) continue;
+
+                    if (!briefIdx.TryGetValue(destId, out int destIdx))
+                    {
+                        warnings.Add($"WARN: Could not discover dest briefing index for 0x{destId:X}; slot {i}.");
+                        continue;
+                    }
+                    int destOff = BRIEFING_XEX_START + destIdx * BRIEFING_ENTRY_SIZE;
+                    Buffer.BlockCopy(block, 0, xex, destOff, BRIEFING_ENTRY_SIZE);
+                    patched.Add($"    Briefing: 0x{srcId:X} → 0x{destId:X} @ idx {destIdx}");
+                }
+
+                patched.Add($"Packed {slotsFilled} levels. Cleared {VanillaMenuOrder.Length - slotsFilled} slots.");
             }
-
-            // 7) Write menu entries INTO DESTINATION SLOTS (by VanillaMenuOrder)
-            int slotsFilled = 0;
-            int n = Math.Min(levelsBeingWritten.Count, VanillaMenuOrder.Length);
-            for (int i = 0; i < n; i++)
-            {
-                uint destId = VanillaMenuOrder[i];
-                if (!menuStructById.TryGetValue(destId, out int menuOffset))
-                {
-                    warnings.Add($"WARN: Couldn't locate destination menu struct for 0x{destId:X} (slot {i}).");
-                    continue;
-                }
-
-                var srcLevel = levelsBeingWritten[i];
-
-                // transplant text IDs from source level's original struct
-                ushort folderId = 0;
-                ushort iconId = 0;
-                if (textIdsByLevelId.TryGetValue(srcLevel.LevelId, out var txPair))
-                {
-                    folderId = txPair.folder;
-                    iconId = txPair.icon;
-                }
-
-                WriteBE16(xex, menuOffset + 4, folderId);
-                WriteBE16(xex, menuOffset + 6, iconId);
-                WriteBE32(xex, menuOffset + 8, srcLevel.LevelId);
-
-                if (imageTableOffset != -1 && LevelImageIds.TryGetValue(srcLevel.LevelId, out uint imgId))
-                {
-                    // image table is exactly in Vanilla order
-                    WriteBE32(xex, imageTableOffset + (i * 4), imgId);
-                }
-
-                patched.Add($"  Slot {i}: {srcLevel.Name} → dest 0x{destId:X} (Menu/Image updated)");
-                slotsFilled++;
-            }
-
-            // 8) Clear remaining destination slots (menu + image)
-            for (int i = n; i < VanillaMenuOrder.Length; i++)
-            {
-                uint destId = VanillaMenuOrder[i];
-                if (!menuStructById.TryGetValue(destId, out int menuOffset)) continue;
-                WriteBE16(xex, menuOffset + 4, 0);
-                WriteBE16(xex, menuOffset + 6, 0);
-                WriteBE32(xex, menuOffset + 8, 0);
-                if (imageTableOffset != -1) WriteBE32(xex, imageTableOffset + (i * 4), 0xFFFFFFFF);
-            }
-
-            // 9) Remap briefing blocks using discovered indices (srcId block -> destId canonical idx)
-            for (int i = 0; i < n; i++)
-            {
-                uint destId = VanillaMenuOrder[i];
-                uint srcId = levelsBeingWritten[i].LevelId;
-
-                if (!origBriefByLevelId.TryGetValue(srcId, out var block)) continue;
-
-                if (!briefIdx.TryGetValue(destId, out int destIdx))
-                {
-                    warnings.Add($"WARN: Could not discover dest briefing index for 0x{destId:X}; slot {i}.");
-                    continue;
-                }
-                int destOff = BRIEFING_XEX_START + destIdx * BRIEFING_ENTRY_SIZE;
-                Buffer.BlockCopy(block, 0, xex, destOff, BRIEFING_ENTRY_SIZE);
-                patched.Add($"    Briefing: 0x{srcId:X} → 0x{destId:X} @ idx {destIdx}");
-            }
-
-            patched.Add($"Packed {slotsFilled} levels. Cleared {VanillaMenuOrder.Length - slotsFilled} slots.");
 
             File.WriteAllBytes(outputXexPath, xex);
 

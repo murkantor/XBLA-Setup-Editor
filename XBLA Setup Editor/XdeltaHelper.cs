@@ -127,7 +127,7 @@ namespace XBLA_Setup_Editor
                     StartInfo = new ProcessStartInfo
                     {
                         FileName = xdeltaPath,
-                        Arguments = $"-e -s \"{tempOriginal}\" \"{modifiedFilePath}\" \"{patchOutputPath}\"",
+                        Arguments = $"-f -e -s \"{tempOriginal}\" \"{modifiedFilePath}\" \"{patchOutputPath}\"",
                         UseShellExecute = false,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,

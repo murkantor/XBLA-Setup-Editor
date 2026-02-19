@@ -62,6 +62,7 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using XBLA_Setup_Editor;
+using XBLA_Setup_Editor.Data;
 
 namespace XBLA_Setup_Editor.Controls
 {
@@ -86,6 +87,7 @@ namespace XBLA_Setup_Editor.Controls
 
         // Optional XEX patching (Solo) - uses shared XEX when available
         private readonly CheckBox _chkPatchXex;
+        private readonly CheckBox _chkCompactMpFirst;
         private readonly CheckBox _chkAllowMp;
         private readonly CheckBox _chkAllowExtendXex;
         private readonly CheckBox _chkForceRepack;
@@ -204,7 +206,8 @@ namespace XBLA_Setup_Editor.Controls
             var btnBrowseBatchOut = new Button { Text = "Browse...", Dock = DockStyle.Fill };
             var btnRunBatchSolo = new Button { Text = "Run batch (Solo)", Dock = DockStyle.Fill, Height = DpiHelper.Scale(this, 34) };
 
-            _chkPatchXex = new CheckBox { Text = "Patch loaded XEX after batch", AutoSize = true, Dock = DockStyle.Left };
+            _chkPatchXex = new CheckBox { Text = "Patch loaded XEX after batch", AutoSize = true, Dock = DockStyle.Left, Checked = true };
+            _chkCompactMpFirst = new CheckBox { Text = "Compact MP region before patching", AutoSize = true, Dock = DockStyle.Left, Checked = false, Enabled = true };
             _chkAllowMp = new CheckBox { Text = "Use MP pool overflow", AutoSize = true, Dock = DockStyle.Left, Checked = true };
             _chkAllowExtendXex = new CheckBox { Text = "Extend XEX if needed", AutoSize = true, Dock = DockStyle.Left, Checked = false };
             _chkForceRepack = new CheckBox { Text = "Force Repack", AutoSize = true, Dock = DockStyle.Left, Checked = true };
@@ -244,6 +247,8 @@ namespace XBLA_Setup_Editor.Controls
             layout.SetColumnSpan(btnRunBatchSolo, 3);
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30)));
             layout.Controls.Add(_chkPatchXex, 1, r++);
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30)));
+            layout.Controls.Add(_chkCompactMpFirst, 1, r++);
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30)));
             layout.Controls.Add(_chkAllowMp, 1, r++);
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30)));
@@ -296,6 +301,11 @@ namespace XBLA_Setup_Editor.Controls
 
             btnRunBatchSolo.Click += (_, __) => RunBatchSolo();
 
+            _chkPatchXex.CheckedChanged += (_, __) =>
+            {
+                _chkCompactMpFirst.Enabled = _chkPatchXex.Checked;
+            };
+
             _chkSplitTwoXex.CheckedChanged += (_, __) =>
             {
                 bool split = _chkSplitTwoXex.Checked;
@@ -328,12 +338,30 @@ namespace XBLA_Setup_Editor.Controls
             toolTip.SetToolTip(_txtBatchInputDir, TooltipTexts.SetupPatching.BatchInputDir);
             toolTip.SetToolTip(_txtBatchOutputDir, TooltipTexts.SetupPatching.BatchOutputDir);
             toolTip.SetToolTip(_chkPatchXex, TooltipTexts.SetupPatching.PatchXex);
+            toolTip.SetToolTip(_chkCompactMpFirst,
+                "Before placing setups, automatically compact the MP setup region by removing " +
+                "Library/Basement/Stack, Citadel, Caves, Complex, and Temple entries, " +
+                "then fix the BG pointers in the Level ID Setup table. " +
+                "This frees space in the MP region and applies both steps in one go.");
             toolTip.SetToolTip(_chkAllowMp, TooltipTexts.SetupPatching.AllowMpPool);
             toolTip.SetToolTip(_chkAllowExtendXex, TooltipTexts.SetupPatching.ExtendXex);
             toolTip.SetToolTip(_chkForceRepack, TooltipTexts.SetupPatching.ForceRepack);
             toolTip.SetToolTip(_chkSplitTwoXex, TooltipTexts.SetupPatching.SplitTwoXex);
             toolTip.SetToolTip(_txtOutputXex1, TooltipTexts.SetupPatching.OutputXex1);
             toolTip.SetToolTip(_txtOutputXex2, TooltipTexts.SetupPatching.OutputXex2);
+        }
+
+        /// <summary>
+        /// The name of the currently selected batch input folder, or null if none set.
+        /// Used by MainForm to suggest a save filename matching the batch folder.
+        /// </summary>
+        public string? BatchFolderName
+        {
+            get
+            {
+                var dir = _txtBatchInputDir.Text.Trim().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                return string.IsNullOrWhiteSpace(dir) ? null : Path.GetFileName(dir);
+            }
         }
 
         #region IXexTab Implementation
@@ -397,12 +425,58 @@ namespace XBLA_Setup_Editor.Controls
             var input = _txtInput.Text.Trim();
             var output = _txtOutput.Text.Trim();
             var offset = _txtOffset.Text.Trim();
+            var levelName = _cbLevel.SelectedItem?.ToString() ?? string.Empty;
             if (string.IsNullOrWhiteSpace(input) || !File.Exists(input)) { MessageBox.Show(FindForm(), "Invalid input."); return; }
             if (string.IsNullOrWhiteSpace(output)) { MessageBox.Show(FindForm(), "Invalid output."); return; }
             if (string.IsNullOrWhiteSpace(offset)) { MessageBox.Show(FindForm(), "No offset."); return; }
             if (!TryGetSetupConvExe(out var exePath)) return;
             var ok = RunSetupConv(exePath, input, output, offset, _txtLog, out var exitCode);
-            MessageBox.Show(FindForm(), ok && exitCode == 0 ? "Conversion complete." : "Failed.");
+            if (!ok || exitCode != 0) { MessageBox.Show(FindForm(), "Failed."); return; }
+
+            if (_xexData == null || string.IsNullOrWhiteSpace(_xexPath))
+            {
+                MessageBox.Show(FindForm(), "Conversion complete. (No XEX loaded - setup not patched into XEX)");
+                return;
+            }
+
+            try
+            {
+                var binData = File.ReadAllBytes(output);
+                var levelToSize = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) { [levelName] = binData.Length };
+                var pass1Blobs = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase) { [levelName] = binData };
+                var levelToInput = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [levelName] = input };
+
+                const int align = 0x10;
+                const int extendChunk = 0x200000;
+                var placements = XexSetupPatcher.PlanHybridPlacements(
+                    _xexData, levelToSize, XexSetupPatcher.PriorityOrder,
+                    allowMp: false, allowExtendXex: false, extendChunkBytes: extendChunk,
+                    align: align, forceRepack: true,
+                    out _, out var notPlaced);
+
+                var outDir = Path.GetDirectoryName(output) ?? ".";
+                var repackDir = Path.Combine(outDir, "_repacked");
+                Directory.CreateDirectory(repackDir);
+                var blobs = BuildBlobsForPlacements(placements, pass1Blobs, levelToInput, exePath, repackDir, _txtLog);
+
+                var tempPath = Path.GetTempFileName();
+                File.WriteAllBytes(tempPath, _xexData);
+                XexSetupPatcher.ApplyHybrid(tempPath, tempPath, placements, blobs, allowExtendXex: false, updateMenuAndBriefing: false, out _);
+                _xexData = File.ReadAllBytes(tempPath);
+                File.Delete(tempPath);
+
+                _hasUnsavedChanges = true;
+                XexModified?.Invoke(this, new XexModifiedEventArgs(_xexData, TabDisplayName));
+
+                if (notPlaced.Count > 0)
+                    MessageBox.Show(FindForm(), $"Conversion complete, but {levelName} did not fit in the XEX.");
+                else
+                    MessageBox.Show(FindForm(), $"Conversion complete. {levelName} patched into XEX - press Save As to save.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(FindForm(), ex.ToString(), "Patch Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void RunBatchSolo()
@@ -436,8 +510,62 @@ namespace XBLA_Setup_Editor.Controls
                 var baseName = kvp.Key;
                 var level = kvp.Value;
                 if (!_soloOffsets.TryGetValue(level, out var originalVa)) { _txtLog.AppendText($"SKIP: No VA for {level}\r\n"); continue; }
-                if (!TryResolveInputFile(byName, baseName, out var inPath)) { _txtLog.AppendText($"MISS: {baseName}\r\n"); continue; }
+
                 var outPath = Path.Combine(outDir, baseName + ".bin");
+
+                // Cuba cannot be converted by setupconv (crashes the game).
+                // Extract the bytes from the loaded XEX. On a previously-patched XEX Cuba may have
+                // been moved, so resolve its current location via the SP pointer rather than always
+                // using the vanilla hardcoded offset (which may now hold a different level's data).
+                if (level.Equals("Cuba", StringComparison.OrdinalIgnoreCase))
+                {
+                    _txtLog.AppendText($"--- {level} ---\r\nVA : {originalVa} (extract from XEX)\r\n");
+                    if (_xexData != null)
+                    {
+                        // Resolve Cuba's actual current file offset from the live SP pointer.
+                        int cubaOffset = XexSetupPatcher.CubaFileOffset; // vanilla fallback
+                        if (XexSetupPatcher.SpPointerOffsets.TryGetValue("Cuba", out int cubaPtrOff)
+                            && cubaPtrOff + 4 <= _xexData.Length)
+                        {
+                            uint cubaVa = (uint)((_xexData[cubaPtrOff] << 24) | (_xexData[cubaPtrOff + 1] << 16)
+                                               | (_xexData[cubaPtrOff + 2] << 8) | _xexData[cubaPtrOff + 3]);
+                            if (cubaVa >= XexSetupPatcher.VaBase)
+                            {
+                                int resolved = (int)(cubaVa - XexSetupPatcher.VaBase);
+                                if (resolved >= 0 && resolved + XexSetupPatcher.CubaSize <= _xexData.Length)
+                                {
+                                    cubaOffset = resolved;
+                                    _txtLog.AppendText($"  SP pointer -> 0x{cubaVa:X8}  (file 0x{cubaOffset:X7})\r\n");
+                                }
+                            }
+                        }
+
+                        if (cubaOffset + XexSetupPatcher.CubaSize <= _xexData.Length)
+                        {
+                            var cubaBytes = new byte[XexSetupPatcher.CubaSize];
+                            Buffer.BlockCopy(_xexData, cubaOffset, cubaBytes, 0, XexSetupPatcher.CubaSize);
+                            File.WriteAllBytes(outPath, cubaBytes);
+                            _txtLog.AppendText($"EXTRACT: {XexSetupPatcher.CubaSize} bytes from 0x{cubaOffset:X7} -> {outPath}\r\n\r\n");
+                            okCount++;
+                            levelToInputSetup[level] = string.Empty; // no N64 source - extracted from XEX
+                            levelToBinPathPass1[level] = outPath;
+                            levelToBinSizePass1[level] = XexSetupPatcher.CubaSize;
+                        }
+                        else
+                        {
+                            _txtLog.AppendText("SKIP Cuba: resolved offset is out of range.\r\n\r\n");
+                            failCount++;
+                        }
+                    }
+                    else
+                    {
+                        _txtLog.AppendText("SKIP Cuba: no XEX loaded.\r\n\r\n");
+                        failCount++;
+                    }
+                    continue;
+                }
+
+                if (!TryResolveInputFile(byName, baseName, out var inPath)) { _txtLog.AppendText($"MISS: {baseName}\r\n"); continue; }
                 _txtLog.AppendText($"--- {level} ---\r\nIN : {inPath}\r\nOUT: {outPath}\r\nVA : {originalVa}\r\n");
 
                 var ok = RunSetupConv(exePath, inPath, outPath, originalVa, _txtLog, out var exitCode);
@@ -465,6 +593,37 @@ namespace XBLA_Setup_Editor.Controls
 
             try
             {
+                // --- Optional: compact MP setup region before planning ---
+                IReadOnlyList<(int Start, int EndExclusive)>? extraPoolSegs = null;
+                if (_chkCompactMpFirst.Checked)
+                {
+                    _txtLog.AppendText("\r\n=== AUTO MP COMPACTION ===\r\n");
+                    var compacted = MpSetupCompactor.Compact(
+                        _xexData, MpSetupCompactor.DefaultRemove,
+                        out var newLayout, out var compactReport);
+                    _txtLog.AppendText(string.Join("\r\n", compactReport) + "\r\n");
+
+                    MpSetupCompactor.FixBgPointers(compacted, newLayout, out var bgReport);
+                    _txtLog.AppendText(string.Join("\r\n", bgReport) + "\r\n");
+
+                    _xexData = compacted;
+
+                    // Expose the freed tail as an extra pool for setup placement
+                    if (newLayout.Count > 0)
+                    {
+                        int freedStart = newLayout[newLayout.Count - 1].FileOffset + newLayout[newLayout.Count - 1].Size;
+                        int freedEnd   = MpSetupCompactor.RegionEnd;
+                        if (freedEnd > freedStart)
+                        {
+                            extraPoolSegs = new List<(int, int)> { (freedStart, freedEnd) };
+                            _txtLog.AppendText($"MP freed tail: 0x{freedStart:X7}–0x{freedEnd:X7}  ({freedEnd - freedStart:N0} bytes available for setup placement)\r\n");
+                        }
+                    }
+
+                    XexModified?.Invoke(this, new XexModifiedEventArgs(_xexData, TabDisplayName));
+                    _txtLog.AppendText("=== MP COMPACTION DONE ===\r\n\r\n");
+                }
+
                 bool allowMp = _chkAllowMp.Checked;
                 bool allowExtend = _chkAllowExtendXex.Checked;
                 bool forceRepack = _chkForceRepack.Checked;
@@ -479,7 +638,7 @@ namespace XBLA_Setup_Editor.Controls
                     if (string.IsNullOrWhiteSpace(outXex2)) { MessageBox.Show(FindForm(), "Invalid Output XEX #2."); return; }
 
                     _txtLog.AppendText("\r\n=== SPLIT PLAN ===\r\n");
-                    XexSetupPatcher.PlanSplitAcrossTwoXex(_xexData, levelToBinSizePass1, allowMp, allowExtend, extendChunk, align, forceRepack, out var p1, out var r1, out var rem, out var p2, out var r2);
+                    XexSetupPatcher.PlanSplitAcrossTwoXex(_xexData, levelToBinSizePass1, allowMp, allowExtend, extendChunk, align, forceRepack, new[] { "Cuba" }, extraPoolSegs, out var p1, out var r1, out var rem, out var p2, out var r2);
 
                     var repackDir = Path.Combine(outDir, "_repacked");
                     Directory.CreateDirectory(repackDir);
@@ -506,6 +665,27 @@ namespace XBLA_Setup_Editor.Controls
                         combined.Add("");
                         combined.Add($"=== APPLY #2: {Path.GetFileName(outXex2)} ===");
                         combined.AddRange(a2);
+
+                        // Report whether the compacted MP tail was actually needed
+                        if (extraPoolSegs != null)
+                        {
+                            var inMpTail1 = p1.Where(pl => pl.Region == XexSetupPatcher.RegionKind.CompactedMpTail).ToList();
+                            var inMpTail2 = p2.Where(pl => pl.Region == XexSetupPatcher.RegionKind.CompactedMpTail).ToList();
+                            var allInTail = inMpTail1.Concat(inMpTail2).ToList();
+                            combined.Add("");
+                            combined.Add("=== COMPACTED MP REGION USAGE ===");
+                            if (allInTail.Count > 0)
+                            {
+                                combined.Add($"  MP compaction was needed — {allInTail.Count} setup(s) placed in freed region:");
+                                foreach (var pl in allInTail)
+                                    combined.Add($"    {pl.LevelName,-16}  0x{pl.FileOffset:X7}  ({pl.Size:N0} bytes)");
+                            }
+                            else
+                            {
+                                combined.Add("  MP compaction was not needed — all setups fit in standard pools.");
+                            }
+                        }
+
                         ShowReport("Split Report", combined);
 
                         // Offer to create xdelta patches for split XEX files
@@ -525,7 +705,7 @@ namespace XBLA_Setup_Editor.Controls
                 else
                 {
                     _txtLog.AppendText("\r\n=== SINGLE PLAN ===\r\n");
-                    var p = XexSetupPatcher.PlanHybridPlacements(_xexData, levelToBinSizePass1, XexSetupPatcher.PriorityOrder, allowMp, allowExtend, extendChunk, align, forceRepack, out var r, out var not);
+                    var p = XexSetupPatcher.PlanHybridPlacements(_xexData, levelToBinSizePass1, XexSetupPatcher.PriorityOrder, allowMp, allowExtend, extendChunk, align, forceRepack, new[] { "Cuba" }, extraPoolSegs, out var r, out var not);
 
                     var repackDir = Path.Combine(outDir, "_repacked");
                     Directory.CreateDirectory(repackDir);
@@ -544,7 +724,55 @@ namespace XBLA_Setup_Editor.Controls
                     var all = new List<string>();
                     all.AddRange(r);
                     all.AddRange(a);
-                    if (not.Count > 0) { all.Add("NOTE: Some levels did not fit."); }
+                    if (not.Count > 0)
+                    {
+                        int totalBytes   = levelToBinSizePass1.Values.Sum();
+                        int placedBytes  = p.Sum(pl => pl.Size);
+                        int unplacedBytes = not.Where(levelToBinSizePass1.ContainsKey).Sum(l => levelToBinSizePass1[l]);
+                        int extraSegsBytes = extraPoolSegs?.Sum(s => s.EndExclusive - s.Start) ?? 0;
+                        int spPoolBytes  = XexSetupPatcher.MpHeadersStart - XexSetupPatcher.SharedReadOnlyEndExclusive;
+                        int mpPoolBytes  = XexSetupPatcher.SetupBlocksEndExclusive - XexSetupPatcher.MpHeadersStart;
+                        int poolTotal    = extraSegsBytes + spPoolBytes + (allowMp ? mpPoolBytes : 0);
+
+                        all.Add("");
+                        all.Add("=== OVERFLOW DIAGNOSTICS ===");
+                        all.Add($"  Total setup bytes : {totalBytes:N0}  (0x{totalBytes:X})");
+                        all.Add($"  Placed bytes      : {placedBytes:N0}  (0x{placedBytes:X})");
+                        all.Add($"  Unplaced bytes    : {unplacedBytes:N0}  (0x{unplacedBytes:X})  [{not.Count} level(s)]");
+                        if (extraSegsBytes > 0)
+                            all.Add($"  Compacted MP tail : {extraSegsBytes:N0}  (0x{extraSegsBytes:X})");
+                        all.Add($"  SP pool capacity  : {spPoolBytes:N0}  (0x{spPoolBytes:X})");
+                        if (allowMp)
+                            all.Add($"  MP pool capacity  : {mpPoolBytes:N0}  (0x{mpPoolBytes:X})");
+                        all.Add($"  Total pool        : {poolTotal:N0}  (0x{poolTotal:X})");
+                        int shortfall = totalBytes - poolTotal;
+                        all.Add($"  Shortfall         : {shortfall:N0} bytes  (0x{shortfall:X}) more space needed");
+                        all.Add("");
+                        all.Add("  Levels not placed:");
+                        foreach (var l in not)
+                        {
+                            int sz = levelToBinSizePass1.TryGetValue(l, out var s) ? s : 0;
+                            all.Add($"    {l,-16} {sz:N0} bytes  (0x{sz:X})");
+                        }
+                    }
+                    // Report whether the compacted MP tail was actually needed
+                    if (extraPoolSegs != null)
+                    {
+                        var inMpTail = p.Where(pl => pl.Region == XexSetupPatcher.RegionKind.CompactedMpTail).ToList();
+                        all.Add("");
+                        all.Add("=== COMPACTED MP REGION USAGE ===");
+                        if (inMpTail.Count > 0)
+                        {
+                            all.Add($"  MP compaction was needed — {inMpTail.Count} setup(s) placed in freed region:");
+                            foreach (var pl in inMpTail)
+                                all.Add($"    {pl.LevelName,-16}  0x{pl.FileOffset:X7}  ({pl.Size:N0} bytes)");
+                        }
+                        else
+                        {
+                            all.Add("  MP compaction was not needed — all setups fit in standard pools.");
+                        }
+                    }
+
                     ShowReport("Single Report", all);
                 }
             }
@@ -580,7 +808,13 @@ namespace XBLA_Setup_Editor.Controls
             foreach (var p in placements)
             {
                 if (!p.RequiresRepack) { if (pass1Blobs.TryGetValue(p.LevelName, out var b)) blobs[p.LevelName] = b; continue; }
-                if (!levelToInputSetup.TryGetValue(p.LevelName, out var inputSet)) throw new InvalidOperationException($"Missing input for {p.LevelName}");
+                if (!levelToInputSetup.TryGetValue(p.LevelName, out var inputSet) || string.IsNullOrEmpty(inputSet))
+                {
+                    // No N64 source available (e.g. Cuba - extracted from XEX). Use pass1 blob as-is.
+                    if (pass1Blobs.TryGetValue(p.LevelName, out var b)) { blobs[p.LevelName] = b; log.AppendText($"NOTE: {p.LevelName} has no source setup and cannot be repacked; vanilla bytes used.\r\n"); }
+                    continue;
+                }
+                if (!File.Exists(inputSet)) throw new InvalidOperationException($"Missing input for {p.LevelName}");
                 string outBin = Path.Combine(repackDir, SanitizeFileName(p.LevelName) + $"_{p.NewVa:X8}.bin");
                 string vaHex = p.NewVa.ToString("X8");
                 log.AppendText($"REPACK: {p.LevelName} VA={vaHex}\r\n");
