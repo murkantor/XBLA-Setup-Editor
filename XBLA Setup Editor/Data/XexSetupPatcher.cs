@@ -96,6 +96,7 @@ namespace XBLA_Setup_Editor
         // --- MENU & BRIEFING CONSTANTS ---
         private const int MENU_XEX_START = 0x71E570;
         private const int MENU_XEX_END = 0x71E8B7;
+        private const int MENU_ENTRY_SIZE = 12; // [Ptr 4][Folder 2][Icon 2][LevelID 4]
 
         private const int BRIEFING_XEX_START = 0x71DF60;
         private const int BRIEFING_ENTRY_SIZE = 0x30;     // 48 bytes per entry
@@ -229,7 +230,71 @@ namespace XBLA_Setup_Editor
             ["Cuba"] = 0x0084B718,
         };
 
-        public enum RegionKind { FixedSP, SpPool, MpPool, EndOfXex, ExtendedXex, CompactedMpTail }
+        public enum RegionKind { FixedSP, SpPool, MpPool, EndOfXex, ExtendedXex, CompactedMpTail, FixedStan, StanPool }
+
+        // --- STAN (CLIPPING) CONSTANTS ---
+        // STAN data spans 0x720588 – 0x84AF3B in the XEX.
+        // Each level has a fixed slot; the slot size equals the distance to the next entry.
+        // Structure of each STAN blob:
+        //   0x0000 : Size from here to end (includes trailing back-pointer + padding)
+        //   0x0408 : Beginning of stans data
+        //   End    : BE32 VA pointer back to the blob start; padded so last nibble is 7 or F
+        public const int StanRegionStart       = 0x00720588;
+        public const int StanRegionEndExclusive = 0x0084AF3C; // Train end
+
+        // All STAN slot start offsets in file order (SP + MP) — used for cap computation only.
+        private static readonly int[] AllStanSlotStarts =
+        {
+            0x720588, 0x724720, 0x732090, 0x744530, 0x7591C0,  // Library, Archives, Control, Facility, Stack(MP)
+            0x75D358, 0x76A088, 0x775880, 0x77BBA0, 0x7832C8,  // Aztec, Caverns, Cradle, Egyptian, Dam
+            0x799298, 0x7A99B8, 0x7B8C28, 0x7BA9E0, 0x7BEB78,  // Depot, Frigate, Temple(MP), Basement(MP), Jungle
+            0x7CF6E0, 0x7D14D8, 0x7D52D0, 0x7DF740, 0x7E40D8,  // Cuba, Caves(MP), Streets, Complex(MP), Runway
+            0x7E83D0, 0x7F11D8, 0x7FC680, 0x810B58, 0x825030,  // Bunker1, Bunker2, Surface1, Surface2*, sho*
+            0x8258D8, 0x83A310, 0x845400,                        // Silo, Statue, Train
+            // * Surface2 shares Surface1 STAN; its slot + sho become free pool
+        };
+
+        // SP-relevant STAN fixed slots (Surface (2) excluded — it mirrors Surface (1)'s pointer).
+        public static readonly SoloRegion[] StanSoloRegions =
+        {
+            new("Archives",    0x00724720), new("Control",     0x00732090),
+            new("Facility",    0x00744530), new("Aztec",       0x0075D358),
+            new("Caverns",     0x0076A088), new("Cradle",      0x00775880),
+            new("Egyptian",    0x0077BBA0), new("Dam",         0x007832C8),
+            new("Depot",       0x00799298), new("Frigate",     0x007A99B8),
+            new("Jungle",      0x007BEB78), new("Cuba",        0x007CF6E0),
+            new("Streets",     0x007D52D0), new("Runway",      0x007E40D8),
+            new("Bunker (1)",  0x007E83D0), new("Bunker (2)",  0x007F11D8),
+            new("Surface (1)", 0x007FC680), new("Silo",        0x008258D8),
+            new("Statue",      0x0083A310), new("Train",       0x00845400),
+        };
+
+        // STAN pointer for each SP level: offset 0x14 in the Level ID table entry
+        // (table base 0x84AF90, stride 0x38). Equals SpPointerOffset - 4 for every level.
+        public static readonly Dictionary<string, int> StanPointerOffsets = new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Bunker (1)"]  = 0x0084AFA4, ["Silo"]        = 0x0084AFDC,
+            ["Statue"]      = 0x0084B014, ["Control"]     = 0x0084B04C,
+            ["Archives"]    = 0x0084B084, ["Train"]       = 0x0084B0BC,
+            ["Frigate"]     = 0x0084B0F4, ["Bunker (2)"]  = 0x0084B12C,
+            ["Aztec"]       = 0x0084B164, ["Streets"]     = 0x0084B19C,
+            ["Depot"]       = 0x0084B1D4, ["Egyptian"]    = 0x0084B244,
+            ["Dam"]         = 0x0084B27C, ["Facility"]    = 0x0084B2B4,
+            ["Runway"]      = 0x0084B2EC, ["Surface (1)"] = 0x0084B324,
+            ["Jungle"]      = 0x0084B35C, ["Caverns"]     = 0x0084B3CC,
+            ["Cradle"]      = 0x0084B43C, ["Surface (2)"] = 0x0084B4AC, // mirrors Surface (1)
+            ["Cuba"]        = 0x0084B714,
+        };
+
+        // Free pool space within the STAN region available for relocated blobs.
+        // Stack's actual data (0x4198) does not fill its slot (which extends to Aztec at 0x75D358).
+        // Surface (2) shares Surface (1)'s STAN so its slot is reclaimed.
+        // "sho" is an unused beta map; its slot is overwritable.
+        private static readonly (int Start, int EndExclusive)[] StanPoolSegments =
+        {
+            (0x7595B8, 0x75D358), // tail of Stack slot: 0x3DA0 bytes
+            (0x810B58, 0x8258D8), // Surface (2) + sho:  0x14D80 bytes
+        };
         public sealed record Placement(string LevelName, int FileOffset, uint NewVa, int Size, RegionKind Region, bool RequiresRepack);
         private sealed record Segment(int Start, int EndExclusive, RegionKind Kind) { public int Size => EndExclusive - Start; }
 
@@ -275,6 +340,28 @@ namespace XBLA_Setup_Editor
                 caps[cur.Name] = Math.Max(0, endExclusive - start);
             }
             return caps;
+        }
+
+        public static IReadOnlyDictionary<string, int> ComputeStanFixedRegionCaps()
+        {
+            var caps = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (var region in StanSoloRegions)
+            {
+                int nextStart = StanRegionEndExclusive;
+                for (int i = 0; i < AllStanSlotStarts.Length - 1; i++)
+                {
+                    if (AllStanSlotStarts[i] == region.OriginalFileOffset)
+                    { nextStart = AllStanSlotStarts[i + 1]; break; }
+                }
+                caps[region.Name] = Math.Max(0, nextStart - region.OriginalFileOffset);
+            }
+            return caps;
+        }
+
+        private static int GetOriginalStanFileOffset(string levelName)
+        {
+            var r = StanSoloRegions.FirstOrDefault(s => s.Name.Equals(levelName, StringComparison.OrdinalIgnoreCase));
+            return r == null ? -1 : r.OriginalFileOffset;
         }
 
         // --- PLANNING METHODS (Condensed) ---
@@ -398,6 +485,97 @@ namespace XBLA_Setup_Editor
             placementsXex2 = PlanHybridPlacements(xex, levelToSize, remainingLevels, allowMp, allowExtendXex, extendChunkBytes, align, forceRepack, alwaysFixedLevels, extraPoolSegments, out rep2, out var notPlaced2);
         }
 
+        /// <summary>
+        /// Plans where each level's STAN (clipping) blob will be placed in the XEX.
+        /// Mirrors the SP setup planning logic: fixed slot first (if it fits), then STAN pool.
+        /// Surface (2) is excluded — it always mirrors Surface (1)'s pointer at apply time.
+        /// <para>When a blob is relocated, <see cref="Placement.RequiresRepack"/> is set to
+        /// <c>true</c> to signal that the internal back-pointer needs fixing.</para>
+        /// </summary>
+        // Backward-compatible overload without extraPoolSegments.
+        public static IReadOnlyList<Placement> PlanStanPlacements(
+            IReadOnlyDictionary<string, int> levelToStanSize,
+            IEnumerable<string> candidateLevels,
+            int align,
+            bool forceReplace,
+            out List<string> reportLines,
+            out List<string> notPlaced)
+            => PlanStanPlacements(levelToStanSize, candidateLevels, align, forceReplace, null, out reportLines, out notPlaced);
+
+        /// <summary>
+        /// Plans STAN placements. Pass <paramref name="extraPoolSegments"/> (the freed tail from
+        /// "Compact MP region") to make that space available to STAN as well as SP setups.
+        /// </summary>
+        public static IReadOnlyList<Placement> PlanStanPlacements(
+            IReadOnlyDictionary<string, int> levelToStanSize,
+            IEnumerable<string> candidateLevels,
+            int align,
+            bool forceReplace,
+            IReadOnlyList<(int Start, int EndExclusive)>? extraPoolSegments,
+            out List<string> reportLines,
+            out List<string> notPlaced)
+        {
+            reportLines = new List<string>(); notPlaced = new List<string>(); reportLines.Add("=== STAN PATCH PLAN ===");
+            var caps = ComputeStanFixedRegionCaps();
+            var segs = new List<Segment>();
+            // Freed MP space (from "Compact MP region" option) goes first — same priority as SP setup planning.
+            if (extraPoolSegments != null)
+                foreach (var (ps, pe) in extraPoolSegments)
+                    if (pe > ps) segs.Add(new Segment(ps, pe, RegionKind.CompactedMpTail));
+            foreach (var (ps, pe) in StanPoolSegments)
+                if (pe > ps) segs.Add(new Segment(ps, pe, RegionKind.StanPool));
+
+            var placements = new List<Placement>();
+            var remaining = new HashSet<string>(candidateLevels, StringComparer.OrdinalIgnoreCase);
+            // Surface (2) always mirrors Surface (1) — exclude from individual planning
+            remaining.Remove("Surface (2)");
+            remaining.RemoveWhere(l => !StanPointerOffsets.ContainsKey(l) || !levelToStanSize.TryGetValue(l, out int s) || s <= 0);
+
+            // First pass: fit into original fixed slot (unless forceReplace)
+            if (!forceReplace)
+            {
+                foreach (var level in PriorityOrder.Where(remaining.Contains))
+                {
+                    int size = levelToStanSize[level];
+                    if (!caps.TryGetValue(level, out int cap)) cap = 0;
+                    int origOff = GetOriginalStanFileOffset(level); if (origOff < 0) continue;
+                    if (size <= cap) { placements.Add(new Placement(level, origOff, FileOffsetToVa(origOff), size, RegionKind.FixedStan, false)); remaining.Remove(level); }
+                }
+            }
+
+            // Carve fixed placements out of pool so they don't double-allocate
+            foreach (var p in placements.Where(p => p.Region == RegionKind.FixedStan))
+            {
+                int pStart = p.FileOffset; int pEnd = p.FileOffset + p.Size;
+                for (int i = segs.Count - 1; i >= 0; i--)
+                {
+                    var s = segs[i]; if (!Overlaps(s.Start, s.EndExclusive, pStart, pEnd)) continue; segs.RemoveAt(i);
+                    if (s.Start < pStart) segs.Insert(i, new Segment(s.Start, pStart, s.Kind)); if (s.EndExclusive > pEnd) segs.Add(new Segment(pEnd, s.EndExclusive, s.Kind));
+                }
+            }
+
+            // Second pass: allocate from STAN pool; RequiresRepack = true → back-pointer fixup needed
+            bool progress;
+            do
+            {
+                progress = false;
+                foreach (var level in PriorityOrder.Where(remaining.Contains).ToList())
+                {
+                    int size = levelToStanSize[level];
+                    if (!TryAlloc(ref segs, size, align, out int off, out RegionKind kind)) continue;
+                    placements.Add(new Placement(level, off, FileOffsetToVa(off), size, kind, true));
+                    remaining.Remove(level); progress = true;
+                }
+            } while (progress && remaining.Count > 0);
+
+            foreach (var l in remaining) notPlaced.Add(l);
+            foreach (var p in placements)
+                reportLines.Add($"  {p.LevelName,-14} STAN -> 0x{p.FileOffset:X8}  ({p.Region}{(p.RequiresRepack ? ", fixup" : "")})");
+            foreach (var l in notPlaced)
+                reportLines.Add($"  WARN: {l} STAN did not fit.");
+            return placements;
+        }
+
         // =========================================================
         // APPLY METHODS
         // =========================================================
@@ -445,7 +623,9 @@ namespace XBLA_Setup_Editor
             bool allowExtendXex,
             IEnumerable<string>? desiredMenuOrder,
             bool updateMenuAndBriefing,
-            out List<string> reportLines)
+            out List<string> reportLines,
+            IReadOnlyList<Placement>? stanPlacements = null,
+            IReadOnlyDictionary<string, byte[]>? levelToStanBlob = null)
         {
             byte[] xex = File.ReadAllBytes(inputXexPath);
             int requiredLen = xex.Length;
@@ -522,8 +702,19 @@ namespace XBLA_Setup_Editor
                     uint destId = VanillaMenuOrder[i];
                     if (!menuStructById.TryGetValue(destId, out int menuOffset))
                     {
-                        warnings.Add($"WARN: Couldn't locate destination menu struct for 0x{destId:X} (slot {i}).");
-                        continue;
+                        // Slot was cleared in a previously-patched XEX (level ID = 0, invisible to scan).
+                        // Fall back to the fixed positional offset — menu structs are a 12-byte stride array.
+                        int posOffset = MENU_XEX_START + i * MENU_ENTRY_SIZE;
+                        if (posOffset + MENU_ENTRY_SIZE <= xex.Length && xex[posOffset] == 0x82)
+                        {
+                            menuOffset = posOffset;
+                            patched.Add($"  Note: slot {i} (0x{destId:X}) found via positional fallback.");
+                        }
+                        else
+                        {
+                            warnings.Add($"WARN: Couldn't locate destination menu struct for 0x{destId:X} (slot {i}); positional fallback also failed.");
+                            continue;
+                        }
                     }
 
                     var srcLevel = levelsBeingWritten[i];
@@ -555,7 +746,12 @@ namespace XBLA_Setup_Editor
                 for (int i = n; i < VanillaMenuOrder.Length; i++)
                 {
                     uint destId = VanillaMenuOrder[i];
-                    if (!menuStructById.TryGetValue(destId, out int menuOffset)) continue;
+                    if (!menuStructById.TryGetValue(destId, out int menuOffset))
+                    {
+                        int posOffset = MENU_XEX_START + i * MENU_ENTRY_SIZE;
+                        if (posOffset + MENU_ENTRY_SIZE <= xex.Length && xex[posOffset] == 0x82) menuOffset = posOffset;
+                        else continue;
+                    }
                     WriteBE16(xex, menuOffset + 4, 0);
                     WriteBE16(xex, menuOffset + 6, 0);
                     WriteBE32(xex, menuOffset + 8, 0);
@@ -572,8 +768,13 @@ namespace XBLA_Setup_Editor
 
                     if (!briefIdx.TryGetValue(destId, out int destIdx))
                     {
-                        warnings.Add($"WARN: Could not discover dest briefing index for 0x{destId:X}; slot {i}.");
-                        continue;
+                        // Briefing slot was cleared or rearranged in a modified XEX.
+                        // Fall back to the vanilla static index for this level.
+                        if (!OriginalBriefingIndices.TryGetValue(destId, out destIdx))
+                        {
+                            warnings.Add($"WARN: Could not discover dest briefing index for 0x{destId:X}; slot {i}.");
+                            continue;
+                        }
                     }
                     int destOff = BRIEFING_XEX_START + destIdx * BRIEFING_ENTRY_SIZE;
                     Buffer.BlockCopy(block, 0, xex, destOff, BRIEFING_ENTRY_SIZE);
@@ -583,12 +784,87 @@ namespace XBLA_Setup_Editor
                 patched.Add($"Packed {slotsFilled} levels. Cleared {VanillaMenuOrder.Length - slotsFilled} slots.");
             }
 
+            // Apply STAN (clipping) blobs if provided
+            if (stanPlacements != null && levelToStanBlob != null)
+                ApplyStanCore(xex, stanPlacements, levelToStanBlob, patched, warnings);
+
             File.WriteAllBytes(outputXexPath, xex);
 
             reportLines = new List<string> { "=== APPLY REPORT ===" };
             reportLines.AddRange(patched.Select(x => "  " + x));
             reportLines.AddRange(warnings.Select(x => "  " + x));
+            reportLines.AddRange(GenerateSpaceUsageReport(placements, stanPlacements));
         }
+
+        // =========================================================
+        // SPACE USAGE REPORT
+        // =========================================================
+
+        /// <summary>
+        /// Returns a formatted space-usage summary for the given placements.
+        /// Shows how much of the SP pool, MP overflow, STAN pool, and (if used)
+        /// the extended-XEX region has been consumed.
+        /// </summary>
+        public static List<string> GenerateSpaceUsageReport(
+            IReadOnlyList<Placement> spPlacements,
+            IReadOnlyList<Placement>? stanPlacements = null)
+        {
+            var lines = new List<string> { "=== SPACE USAGE ===" };
+
+            int spPoolTotal  = MpHeadersStart - SharedReadOnlyEndExclusive; // 0x124440
+            int mpPoolTotal  = SetupBlocksEndExclusive - MpHeadersStart;    // 0x272A0
+
+            int fixedSpBytes  = spPlacements.Where(p => p.Region == RegionKind.FixedSP).Sum(p => p.Size);
+            int fixedSpCount  = spPlacements.Count(p => p.Region == RegionKind.FixedSP);
+            int spPoolBytes   = spPlacements.Where(p => p.Region == RegionKind.SpPool).Sum(p => p.Size);
+            // CompactedMpTail is shared — both SP setups and STAN blobs can land there.
+            int cmpTailBytes  = spPlacements.Where(p => p.Region == RegionKind.CompactedMpTail).Sum(p => p.Size)
+                              + (stanPlacements?.Where(p => p.Region == RegionKind.CompactedMpTail).Sum(p => p.Size) ?? 0);
+            int mpPoolBytes   = spPlacements.Where(p => p.Region == RegionKind.MpPool).Sum(p => p.Size);
+            int extBytes      = spPlacements.Where(p => p.Region == RegionKind.ExtendedXex || p.Region == RegionKind.EndOfXex).Sum(p => p.Size);
+
+            int spRegionUsed = fixedSpBytes + spPoolBytes;
+            lines.Add($"  BG Data pool    {FmtBytes(spRegionUsed),14} / {FmtBytes(spPoolTotal),-14}  {Pct(spRegionUsed, spPoolTotal),5}");
+            lines.Add($"    Fixed slots : {FmtBytes(fixedSpBytes),14}  ({fixedSpCount} level{(fixedSpCount == 1 ? "" : "s")}, in-place — no pool cost)");
+            lines.Add($"    Pool used   : {FmtBytes(spPoolBytes),14}  ({FmtBytes(spPoolTotal - spRegionUsed)} remaining)");
+
+            if (cmpTailBytes > 0 || mpPoolBytes > 0)
+            {
+                int mpRegionUsed = cmpTailBytes + mpPoolBytes;
+                lines.Add($"  Multiplayer region {FmtBytes(mpRegionUsed),14} / {FmtBytes(mpPoolTotal),-14}  {Pct(mpRegionUsed, mpPoolTotal),5}");
+                if (cmpTailBytes > 0) lines.Add($"    Compacted BG Data tail: {FmtBytes(cmpTailBytes)}");
+                if (mpPoolBytes  > 0) lines.Add($"    Multiplayer pool      : {FmtBytes(mpPoolBytes)}");
+            }
+
+            if (extBytes > 0)
+                lines.Add($"  Extended XEX    {FmtBytes(extBytes),14}  appended to file");
+
+            if (stanPlacements != null && stanPlacements.Count > 0)
+            {
+                int stanPoolTotal  = StanPoolSegments.Sum(s => s.EndExclusive - s.Start); // 0x18B20
+                int fixedStanBytes  = stanPlacements.Where(p => p.Region == RegionKind.FixedStan).Sum(p => p.Size);
+                int fixedStanCount  = stanPlacements.Count(p => p.Region == RegionKind.FixedStan);
+                int stanPoolBytes   = stanPlacements.Where(p => p.Region == RegionKind.StanPool).Sum(p => p.Size);
+                int stanCmpBytes    = stanPlacements.Where(p => p.Region == RegionKind.CompactedMpTail).Sum(p => p.Size);
+                lines.Add($"  STAN Data pool  {FmtBytes(stanPoolBytes),14} / {FmtBytes(stanPoolTotal),-14}  {Pct(stanPoolBytes, stanPoolTotal),5}");
+                lines.Add($"    Fixed slots : {FmtBytes(fixedStanBytes),14}  ({fixedStanCount} level{(fixedStanCount == 1 ? "" : "s")}, in-place — no pool cost)");
+                lines.Add($"    Pool used   : {FmtBytes(stanPoolBytes),14}  ({FmtBytes(stanPoolTotal - stanPoolBytes)} remaining)");
+                if (stanCmpBytes > 0)
+                    lines.Add($"    Compact tail: {FmtBytes(stanCmpBytes),14}  (counted in Multiplayer region above)");
+            }
+
+            return lines;
+        }
+
+        private static string FmtBytes(int bytes)
+        {
+            if (bytes >= 1_048_576) return $"{bytes / 1_048_576.0:F2} MB";
+            if (bytes >= 1_024)     return $"{bytes / 1_024.0:F1} KB";
+            return $"{bytes} B";
+        }
+
+        private static string Pct(int used, int total) =>
+            total > 0 ? $"{(double)used / total * 100:F1}%" : "N/A";
 
         // Build map of menu struct starts keyed by mission LevelId (robust against struct order)
         private static Dictionary<uint, int> BuildMenuStructIndex(byte[] xex)
@@ -714,6 +990,21 @@ namespace XBLA_Setup_Editor
             return combined;
         }
 
+        /// <summary>Applies SP setup and STAN blobs in a single pass.</summary>
+        public static void ApplyHybrid(
+            string inputXexPath,
+            string outputXexPath,
+            IReadOnlyList<Placement> placements,
+            IReadOnlyDictionary<string, byte[]> levelToBlob,
+            IReadOnlyList<Placement> stanPlacements,
+            IReadOnlyDictionary<string, byte[]> levelToStanBlob,
+            bool allowExtendXex,
+            IEnumerable<string>? desiredMenuOrder,
+            out List<string> reportLines)
+        {
+            ApplyHybridCore(inputXexPath, outputXexPath, placements, levelToBlob, allowExtendXex, desiredMenuOrder, updateMenuAndBriefing: true, out reportLines, stanPlacements, levelToStanBlob);
+        }
+
         public static void ApplySplitHybrid(
             string inputXexPath,
             string outputXex1Path,
@@ -785,5 +1076,65 @@ namespace XBLA_Setup_Editor
         }
 
         private sealed class MenuEntryInfo { public uint LevelId; public string Name = ""; }
+
+        // =========================================================
+        // STAN APPLY HELPERS
+        // =========================================================
+
+        /// <summary>
+        /// Writes all STAN blobs into <paramref name="xex"/>, updates the Level ID table STAN
+        /// pointers, fixes internal back-pointers for relocated blobs, and mirrors Surface (1)'s
+        /// STAN pointer into Surface (2)'s entry.
+        /// </summary>
+        private static void ApplyStanCore(
+            byte[] xex,
+            IReadOnlyList<Placement> stanPlacements,
+            IReadOnlyDictionary<string, byte[]> levelToStanBlob,
+            List<string> reportLines,
+            List<string> warnings)
+        {
+            foreach (var p in stanPlacements)
+            {
+                if (!levelToStanBlob.TryGetValue(p.LevelName, out var blob) || blob == null) continue;
+                if (p.FileOffset + blob.Length > xex.Length)
+                { warnings.Add($"WARN: STAN {p.LevelName} extends beyond XEX bounds. Skipped."); continue; }
+
+                uint origVa = FileOffsetToVa(GetOriginalStanFileOffset(p.LevelName));
+                Buffer.BlockCopy(blob, 0, xex, p.FileOffset, blob.Length);
+
+                if (StanPointerOffsets.TryGetValue(p.LevelName, out int ptrOff))
+                    WriteBE32(xex, ptrOff, p.NewVa);
+
+                // If relocated, fix the trailing BE32 back-pointer inside the blob
+                if (p.RequiresRepack && p.NewVa != origVa)
+                {
+                    if (!FixStanBackPointer(xex, p.FileOffset, blob.Length, origVa, p.NewVa))
+                        warnings.Add($"WARN: Could not locate back-pointer in {p.LevelName} STAN blob.");
+                }
+
+                reportLines.Add($"  STAN {p.LevelName,-14} -> 0x{p.FileOffset:X8}  VA 0x{p.NewVa:X8}");
+            }
+
+            // Surface (2) always mirrors Surface (1)'s STAN pointer
+            var surf1 = stanPlacements.FirstOrDefault(p => p.LevelName.Equals("Surface (1)", StringComparison.OrdinalIgnoreCase));
+            if (surf1 != null && StanPointerOffsets.TryGetValue("Surface (2)", out int s2ptr))
+            { WriteBE32(xex, s2ptr, surf1.NewVa); reportLines.Add($"  STAN Surface (2)       -> mirrors Surface (1) VA 0x{surf1.NewVa:X8}"); }
+        }
+
+        /// <summary>
+        /// Scans backward through the blob for a BE32 equal to <paramref name="oldVa"/>
+        /// (the STAN's back-pointer to its own start) and rewrites it to <paramref name="newVa"/>.
+        /// Returns <c>true</c> if the pointer was found and updated.
+        /// </summary>
+        private static bool FixStanBackPointer(byte[] xex, int blobStart, int blobSize, uint oldVa, uint newVa)
+        {
+            int end = blobStart + blobSize - 4;
+            for (int i = end; i >= blobStart; i -= 4)
+            {
+                if (i < 0 || i + 4 > xex.Length) continue;
+                if (ReadBE32(xex, i) == oldVa) { WriteBE32(xex, i, newVa); return true; }
+            }
+            return false;
+        }
     }
 }

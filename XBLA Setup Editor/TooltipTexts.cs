@@ -104,8 +104,8 @@ namespace XBLA_Setup_Editor
             /// <summary>Patch XEX checkbox.</summary>
             public const string PatchXex = "After batch conversion, patch the converted setups into the XEX file";
 
-            /// <summary>Allow MP pool checkbox.</summary>
-            public const string AllowMpPool = "Allow using multiplayer memory pool for solo levels. May cause issues in MP mode";
+            /// <summary>Allow Multiplayer region overflow checkbox.</summary>
+            public const string AllowMpPool = "Allow using the Multiplayer region overflow for solo levels. May cause issues in Multiplayer mode";
 
             /// <summary>Extend XEX checkbox.</summary>
             public const string ExtendXex = "If setups don't fit, extend the XEX file with additional memory";

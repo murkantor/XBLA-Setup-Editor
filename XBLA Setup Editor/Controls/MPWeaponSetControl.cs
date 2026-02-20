@@ -328,7 +328,7 @@ namespace XBLA_Setup_Editor.Controls
 
         #region IXexTab Implementation
 
-        public string TabDisplayName => "MP Weapon Sets";
+        public string TabDisplayName => "Multiplayer Weapon Sets";
 
         public bool HasUnsavedChanges => _hasUnsavedChanges;
 

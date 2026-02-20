@@ -152,7 +152,7 @@ namespace XBLA_Setup_Editor
             var btnBrowseInputXex = new Button { Text = "Browse...", Dock = DockStyle.Fill };
             var btnBrowseOutputXex = new Button { Text = "Browse...", Dock = DockStyle.Fill };
 
-            _chkAllowMp = new CheckBox { Text = "Use MP pool overflow (destructive)", AutoSize = true, Dock = DockStyle.Left, Checked = true };
+            _chkAllowMp = new CheckBox { Text = "Use Multiplayer region overflow (destructive)", AutoSize = true, Dock = DockStyle.Left, Checked = true };
             _chkAllowExtendXex = new CheckBox { Text = "Extend XEX if needed (adds data beyond file, updates headers)", AutoSize = true, Dock = DockStyle.Left, Checked = false };
             _chkForceRepack = new CheckBox { Text = "Force Repack (Defrag memory - Optimizes space)", AutoSize = true, Dock = DockStyle.Left, Checked = true };
             _chkSplitTwoXex = new CheckBox { Text = "If not enough room: split across TWO output XEX files", AutoSize = true, Dock = DockStyle.Left, Checked = false };

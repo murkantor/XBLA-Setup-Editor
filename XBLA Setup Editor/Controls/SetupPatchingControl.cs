@@ -92,6 +92,7 @@ namespace XBLA_Setup_Editor.Controls
         private readonly CheckBox _chkAllowExtendXex;
         private readonly CheckBox _chkForceRepack;
         private readonly CheckBox _chkSplitTwoXex;
+        private readonly CheckBox _chkPatchStan;
         private readonly TextBox _txtOutputXex1;
         private readonly TextBox _txtOutputXex2;
 
@@ -207,8 +208,9 @@ namespace XBLA_Setup_Editor.Controls
             var btnRunBatchSolo = new Button { Text = "Run batch (Solo)", Dock = DockStyle.Fill, Height = DpiHelper.Scale(this, 34) };
 
             _chkPatchXex = new CheckBox { Text = "Patch loaded XEX after batch", AutoSize = true, Dock = DockStyle.Left, Checked = true };
-            _chkCompactMpFirst = new CheckBox { Text = "Compact MP region before patching", AutoSize = true, Dock = DockStyle.Left, Checked = false, Enabled = true };
-            _chkAllowMp = new CheckBox { Text = "Use MP pool overflow", AutoSize = true, Dock = DockStyle.Left, Checked = true };
+            _chkCompactMpFirst = new CheckBox { Text = "Compact BG Data region before patching", AutoSize = true, Dock = DockStyle.Left, Checked = false, Enabled = true };
+            _chkPatchStan = new CheckBox { Text = "Patch STAN Data", AutoSize = true, Dock = DockStyle.Left, Checked = false };
+            _chkAllowMp = new CheckBox { Text = "Use Multiplayer region overflow", AutoSize = true, Dock = DockStyle.Left, Checked = true };
             _chkAllowExtendXex = new CheckBox { Text = "Extend XEX if needed", AutoSize = true, Dock = DockStyle.Left, Checked = false };
             _chkForceRepack = new CheckBox { Text = "Force Repack", AutoSize = true, Dock = DockStyle.Left, Checked = true };
             _chkSplitTwoXex = new CheckBox { Text = "Split across two XEX files", AutoSize = true, Dock = DockStyle.Left, Checked = false };
@@ -249,6 +251,8 @@ namespace XBLA_Setup_Editor.Controls
             layout.Controls.Add(_chkPatchXex, 1, r++);
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30)));
             layout.Controls.Add(_chkCompactMpFirst, 1, r++);
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30)));
+            layout.Controls.Add(_chkPatchStan, 1, r++);
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30)));
             layout.Controls.Add(_chkAllowMp, 1, r++);
             layout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 30)));
@@ -304,6 +308,7 @@ namespace XBLA_Setup_Editor.Controls
             _chkPatchXex.CheckedChanged += (_, __) =>
             {
                 _chkCompactMpFirst.Enabled = _chkPatchXex.Checked;
+                _chkPatchStan.Enabled = _chkPatchXex.Checked;
             };
 
             _chkSplitTwoXex.CheckedChanged += (_, __) =>
@@ -339,10 +344,14 @@ namespace XBLA_Setup_Editor.Controls
             toolTip.SetToolTip(_txtBatchOutputDir, TooltipTexts.SetupPatching.BatchOutputDir);
             toolTip.SetToolTip(_chkPatchXex, TooltipTexts.SetupPatching.PatchXex);
             toolTip.SetToolTip(_chkCompactMpFirst,
-                "Before placing setups, automatically compact the MP setup region by removing " +
+                "Before placing setups, automatically compact the BG Data region by removing " +
                 "Library/Basement/Stack, Citadel, Caves, Complex, and Temple entries, " +
                 "then fix the BG pointers in the Level ID Setup table. " +
-                "This frees space in the MP region and applies both steps in one go.");
+                "This frees space in the BG Data region and applies both steps in one go.");
+            toolTip.SetToolTip(_chkPatchStan,
+                "Also patch STAN (clipping) data blobs into the XEX. " +
+                "STAN blobs are extracted from the loaded XEX and relocated as needed. " +
+                "If 'Compact BG Data region' is also enabled, STAN blobs can use that freed space too.");
             toolTip.SetToolTip(_chkAllowMp, TooltipTexts.SetupPatching.AllowMpPool);
             toolTip.SetToolTip(_chkAllowExtendXex, TooltipTexts.SetupPatching.ExtendXex);
             toolTip.SetToolTip(_chkForceRepack, TooltipTexts.SetupPatching.ForceRepack);
@@ -597,7 +606,7 @@ namespace XBLA_Setup_Editor.Controls
                 IReadOnlyList<(int Start, int EndExclusive)>? extraPoolSegs = null;
                 if (_chkCompactMpFirst.Checked)
                 {
-                    _txtLog.AppendText("\r\n=== AUTO MP COMPACTION ===\r\n");
+                    _txtLog.AppendText("\r\n=== AUTO BG DATA COMPACTION ===\r\n");
                     var compacted = MpSetupCompactor.Compact(
                         _xexData, MpSetupCompactor.DefaultRemove,
                         out var newLayout, out var compactReport);
@@ -616,12 +625,12 @@ namespace XBLA_Setup_Editor.Controls
                         if (freedEnd > freedStart)
                         {
                             extraPoolSegs = new List<(int, int)> { (freedStart, freedEnd) };
-                            _txtLog.AppendText($"MP freed tail: 0x{freedStart:X7}–0x{freedEnd:X7}  ({freedEnd - freedStart:N0} bytes available for setup placement)\r\n");
+                            _txtLog.AppendText($"BG Data freed tail: 0x{freedStart:X7}–0x{freedEnd:X7}  ({freedEnd - freedStart:N0} bytes available for setup placement)\r\n");
                         }
                     }
 
                     XexModified?.Invoke(this, new XexModifiedEventArgs(_xexData, TabDisplayName));
-                    _txtLog.AppendText("=== MP COMPACTION DONE ===\r\n\r\n");
+                    _txtLog.AppendText("=== BG DATA COMPACTION DONE ===\r\n\r\n");
                 }
 
                 bool allowMp = _chkAllowMp.Checked;
@@ -629,6 +638,25 @@ namespace XBLA_Setup_Editor.Controls
                 bool forceRepack = _chkForceRepack.Checked;
                 const int align = 0x10;
                 const int extendChunk = 0x200000;
+
+                // --- STAN blob extraction ---
+                var levelToStanBlob = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+                if (_chkPatchStan.Checked)
+                {
+                    _txtLog.AppendText("\r\n=== STAN DATA EXTRACTION ===\r\n");
+                    foreach (var region in XexSetupPatcher.StanSoloRegions)
+                    {
+                        int off = region.OriginalFileOffset;
+                        if (off + 4 > _xexData.Length) { _txtLog.AppendText($"  SKIP {region.Name}: offset out of range\r\n"); continue; }
+                        int blobSize = (int)(((uint)_xexData[off] << 24) | ((uint)_xexData[off + 1] << 16) | ((uint)_xexData[off + 2] << 8) | _xexData[off + 3]);
+                        if (blobSize <= 0 || off + blobSize > _xexData.Length) { _txtLog.AppendText($"  SKIP {region.Name}: invalid size 0x{blobSize:X}\r\n"); continue; }
+                        var blob = new byte[blobSize];
+                        Buffer.BlockCopy(_xexData, off, blob, 0, blobSize);
+                        levelToStanBlob[region.Name] = blob;
+                        _txtLog.AppendText($"  {region.Name,-14} 0x{off:X7}  {blobSize:N0} bytes\r\n");
+                    }
+                    _txtLog.AppendText($"Extracted {levelToStanBlob.Count} STAN blobs.\r\n");
+                }
 
                 if (_chkSplitTwoXex.Checked)
                 {
@@ -652,8 +680,24 @@ namespace XBLA_Setup_Editor.Controls
 
                     try
                     {
-                        XexSetupPatcher.ApplyHybrid(tempXex, outXex1, p1, b1, allowExtend, out var a1);
-                        XexSetupPatcher.ApplyHybrid(tempXex, outXex2, p2, b2, allowExtend, out var a2);
+                        List<string> a1, a2;
+                        if (_chkPatchStan.Checked && levelToStanBlob.Count > 0)
+                        {
+                            var stanSizes  = levelToStanBlob.ToDictionary(kv => kv.Key, kv => kv.Value.Length, StringComparer.OrdinalIgnoreCase);
+                            var xex1Levels = p1.Select(pl => pl.LevelName).Where(levelToStanBlob.ContainsKey).ToList();
+                            var xex2Levels = p2.Select(pl => pl.LevelName).Where(levelToStanBlob.ContainsKey).ToList();
+                            var stanP1 = XexSetupPatcher.PlanStanPlacements(stanSizes, xex1Levels, align, forceRepack, extraPoolSegs, out var sr1, out _);
+                            var stanP2 = XexSetupPatcher.PlanStanPlacements(stanSizes, xex2Levels, align, forceRepack, extraPoolSegs, out var sr2, out _);
+                            r1.Add(""); r1.AddRange(sr1);
+                            r2.Add(""); r2.AddRange(sr2);
+                            XexSetupPatcher.ApplyHybrid(tempXex, outXex1, p1, b1, stanP1, levelToStanBlob, allowExtend, null, out a1);
+                            XexSetupPatcher.ApplyHybrid(tempXex, outXex2, p2, b2, stanP2, levelToStanBlob, allowExtend, null, out a2);
+                        }
+                        else
+                        {
+                            XexSetupPatcher.ApplyHybrid(tempXex, outXex1, p1, b1, allowExtend, out a1);
+                            XexSetupPatcher.ApplyHybrid(tempXex, outXex2, p2, b2, allowExtend, out a2);
+                        }
 
                         var combined = new List<string>();
                         combined.AddRange(r1);
@@ -673,16 +717,16 @@ namespace XBLA_Setup_Editor.Controls
                             var inMpTail2 = p2.Where(pl => pl.Region == XexSetupPatcher.RegionKind.CompactedMpTail).ToList();
                             var allInTail = inMpTail1.Concat(inMpTail2).ToList();
                             combined.Add("");
-                            combined.Add("=== COMPACTED MP REGION USAGE ===");
+                            combined.Add("=== COMPACTED BG DATA REGION USAGE ===");
                             if (allInTail.Count > 0)
                             {
-                                combined.Add($"  MP compaction was needed — {allInTail.Count} setup(s) placed in freed region:");
+                                combined.Add($"  BG Data compaction was needed — {allInTail.Count} setup(s) placed in freed region:");
                                 foreach (var pl in allInTail)
                                     combined.Add($"    {pl.LevelName,-16}  0x{pl.FileOffset:X7}  ({pl.Size:N0} bytes)");
                             }
                             else
                             {
-                                combined.Add("  MP compaction was not needed — all setups fit in standard pools.");
+                                combined.Add("  BG Data compaction was not needed — all setups fit in standard pools.");
                             }
                         }
 
@@ -714,7 +758,19 @@ namespace XBLA_Setup_Editor.Controls
                     // Apply to current XEX data
                     var tempPath = Path.GetTempFileName();
                     File.WriteAllBytes(tempPath, _xexData);
-                    XexSetupPatcher.ApplyHybrid(tempPath, tempPath, p, b, allowExtend, out var a);
+                    List<string> a;
+                    if (_chkPatchStan.Checked && levelToStanBlob.Count > 0)
+                    {
+                        var stanCandidates = p.Select(pl => pl.LevelName).Where(levelToStanBlob.ContainsKey).ToList();
+                        var stanSizes = stanCandidates.ToDictionary(l => l, l => levelToStanBlob[l].Length, StringComparer.OrdinalIgnoreCase);
+                        var stanP = XexSetupPatcher.PlanStanPlacements(stanSizes, stanCandidates, align, forceRepack, extraPoolSegs, out var stanR, out _);
+                        r.AddRange(stanR);
+                        XexSetupPatcher.ApplyHybrid(tempPath, tempPath, p, b, stanP, levelToStanBlob, allowExtend, null, out a);
+                    }
+                    else
+                    {
+                        XexSetupPatcher.ApplyHybrid(tempPath, tempPath, p, b, allowExtend, out a);
+                    }
                     _xexData = File.ReadAllBytes(tempPath);
                     File.Delete(tempPath);
 
@@ -740,10 +796,10 @@ namespace XBLA_Setup_Editor.Controls
                         all.Add($"  Placed bytes      : {placedBytes:N0}  (0x{placedBytes:X})");
                         all.Add($"  Unplaced bytes    : {unplacedBytes:N0}  (0x{unplacedBytes:X})  [{not.Count} level(s)]");
                         if (extraSegsBytes > 0)
-                            all.Add($"  Compacted MP tail : {extraSegsBytes:N0}  (0x{extraSegsBytes:X})");
-                        all.Add($"  SP pool capacity  : {spPoolBytes:N0}  (0x{spPoolBytes:X})");
+                            all.Add($"  Compacted BG Data tail : {extraSegsBytes:N0}  (0x{extraSegsBytes:X})");
+                        all.Add($"  SP pool capacity       : {spPoolBytes:N0}  (0x{spPoolBytes:X})");
                         if (allowMp)
-                            all.Add($"  MP pool capacity  : {mpPoolBytes:N0}  (0x{mpPoolBytes:X})");
+                            all.Add($"  Multiplayer pool cap.  : {mpPoolBytes:N0}  (0x{mpPoolBytes:X})");
                         all.Add($"  Total pool        : {poolTotal:N0}  (0x{poolTotal:X})");
                         int shortfall = totalBytes - poolTotal;
                         all.Add($"  Shortfall         : {shortfall:N0} bytes  (0x{shortfall:X}) more space needed");
@@ -760,16 +816,16 @@ namespace XBLA_Setup_Editor.Controls
                     {
                         var inMpTail = p.Where(pl => pl.Region == XexSetupPatcher.RegionKind.CompactedMpTail).ToList();
                         all.Add("");
-                        all.Add("=== COMPACTED MP REGION USAGE ===");
+                        all.Add("=== COMPACTED BG DATA REGION USAGE ===");
                         if (inMpTail.Count > 0)
                         {
-                            all.Add($"  MP compaction was needed — {inMpTail.Count} setup(s) placed in freed region:");
+                            all.Add($"  BG Data compaction was needed — {inMpTail.Count} setup(s) placed in freed region:");
                             foreach (var pl in inMpTail)
                                 all.Add($"    {pl.LevelName,-16}  0x{pl.FileOffset:X7}  ({pl.Size:N0} bytes)");
                         }
                         else
                         {
-                            all.Add("  MP compaction was not needed — all setups fit in standard pools.");
+                            all.Add("  BG Data compaction was not needed — all setups fit in standard pools.");
                         }
                     }
 

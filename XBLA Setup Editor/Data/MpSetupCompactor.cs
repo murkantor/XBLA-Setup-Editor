@@ -141,7 +141,7 @@ namespace XBLA_Setup_Editor.Data
                 if (!KnownLayout.Any(e => e.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
                     report.Add($"WARN: '{name}' not found in KnownLayout - skipped.");
 
-            report.Add("=== MP SETUP COMPACTION ===");
+            report.Add("=== BG DATA COMPACTION ===");
             report.Add($"Removing {removed.Count} entr{(removed.Count == 1 ? "y" : "ies")}  ({removed.Sum(r => r.Size):N0} bytes freed):");
             foreach (var r in removed)
                 report.Add($"  - {r.Name,-28}  size 0x{r.Size:X5}  ({r.Size:N0} bytes)");

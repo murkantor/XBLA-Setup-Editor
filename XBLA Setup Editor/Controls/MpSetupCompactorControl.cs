@@ -8,7 +8,7 @@ using XBLA_Setup_Editor.Data;
 namespace XBLA_Setup_Editor.Controls
 {
     /// <summary>
-    /// Tab that compacts the MP setup region of the XEX by removing the five
+    /// Tab that compacts the BG Data region of the XEX by removing the five
     /// entries that are no longer needed (Library/Basement/Stack, Citadel,
     /// Caves, Complex, Temple) and shifting the remaining entries down.
     /// </summary>
@@ -43,7 +43,7 @@ namespace XBLA_Setup_Editor.Controls
             var lblInfo = new Label
             {
                 Text =
-                    "Select the MP setup entries to remove, then click Compact. " +
+                    "Select the BG Data entries to remove, then click Compact. " +
                     "The remaining entries will be shifted down to fill the gaps, " +
                     "freeing space at the end of the region.\r\n" +
                     "BG pointer fixup is a separate step done after compaction.",
@@ -94,7 +94,7 @@ namespace XBLA_Setup_Editor.Controls
 
             _btnCompact = new Button
             {
-                Text = "Compact MP Setups",
+                Text = "Compact BG Data",
                 AutoSize = true,
                 Enabled = false,
                 Height = DpiHelper.Scale(this, 28)
@@ -133,7 +133,7 @@ namespace XBLA_Setup_Editor.Controls
         // IXexTab
         // =====================================================================
 
-        public string TabDisplayName => "MP Compactor";
+        public string TabDisplayName => "BG Data Compactor";
         public bool HasUnsavedChanges => _hasUnsavedChanges;
 
         public void OnXexLoaded(byte[] xexData, string path)
@@ -198,7 +198,7 @@ namespace XBLA_Setup_Editor.Controls
                 .Sum(e => e.Size);
 
             var confirm = MessageBox.Show(FindForm(),
-                $"Remove {toRemove.Count} entries ({totalRemoved:N0} bytes) and compact the MP setup region?\n\n" +
+                $"Remove {toRemove.Count} entries ({totalRemoved:N0} bytes) and compact the BG Data region?\n\n" +
                 $"This modifies the XEX in memory. Save As afterwards to write to disk.",
                 "Confirm Compaction",
                 MessageBoxButtons.YesNo,

@@ -219,12 +219,12 @@ namespace XBLA_Setup_Editor
 
             // ---- Add Tabs (in display order) ----
             AddTab("STR Editor", _strEditorControl);
-            AddTab("MP Weapon Sets", _mpWeaponSetControl);
+            AddTab("Multiplayer Weapon Sets", _mpWeaponSetControl);
             AddTab("Setup Patching", _setupPatchingControl);
             AddTab("Skies, Fog and Music", _file21990Control);
             AddTab("Weapon Stats", _weaponStatsControl);
             AddTab("XEX Extender", _xexExtenderControl);
-            AddTab("MP Compactor", _mpSetupCompactorControl);
+            AddTab("BG Data Compactor", _mpSetupCompactorControl);
 
             mainLayout.Controls.Add(_tabControl, 0, 3);
 

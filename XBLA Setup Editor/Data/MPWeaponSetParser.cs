@@ -275,7 +275,7 @@ namespace XBLA_Setup_Editor
         /// </summary>
         public void ApplyToXex(byte[] xexData, List<string>? log = null)
         {
-            log?.Add("=== Applying MP Weapon Sets ===");
+            log?.Add("=== Applying Multiplayer Weapon Sets ===");
 
             if (xexData.Length < SELECT_LIST_END)
                 throw new InvalidOperationException($"XEX file too small. Expected at least {SELECT_LIST_END} bytes.");
@@ -318,7 +318,7 @@ namespace XBLA_Setup_Editor
         {
             var report = new List<string>
             {
-                "=== MP Weapon Sets Report ===",
+                "=== Multiplayer Weapon Sets Report ===",
                 ""
             };
 
