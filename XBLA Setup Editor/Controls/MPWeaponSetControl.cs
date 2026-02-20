@@ -71,6 +71,7 @@ namespace XBLA_Setup_Editor.Controls
         private readonly TextBox _txtLog;
         private TextBox _txtTextFolder3 = null!;
         private TextBox? _txtLanId;
+        private CheckBox _chkWriteLanId = null!;
 
         // --- State ---
         private MPWeaponSetParser? _parser;
@@ -216,6 +217,7 @@ namespace XBLA_Setup_Editor.Controls
                 Margin = new Padding(0, DpiHelper.Scale(this, 6), DpiHelper.Scale(this, 15), 0),
                 ForeColor = Color.DarkRed
             };
+            _chkRemoveArmor.CheckedChanged += (_, __) => UpdateLanIdDisplay();
             panel.Controls.Add(_chkRemoveArmor);
 
             panel.Controls.Add(new Label { Text = "Text Folder:", AutoSize = true, Margin = new Padding(DpiHelper.Scale(this, 10), DpiHelper.Scale(this, 6), DpiHelper.Scale(this, 5), 0) });
@@ -227,10 +229,17 @@ namespace XBLA_Setup_Editor.Controls
             };
             panel.Controls.Add(_txtTextFolder3);
 
-            panel.Controls.Add(new Label { Text = "LAN ID:", AutoSize = true, Margin = new Padding(DpiHelper.Scale(this, 10), DpiHelper.Scale(this, 6), DpiHelper.Scale(this, 5), 0) });
+            _chkWriteLanId = new CheckBox
+            {
+                Text = "Write LAN ID:",
+                Checked = true,
+                AutoSize = true,
+                Margin = new Padding(DpiHelper.Scale(this, 10), DpiHelper.Scale(this, 6), DpiHelper.Scale(this, 5), 0)
+            };
+            panel.Controls.Add(_chkWriteLanId);
             _txtLanId = new TextBox
             {
-                Width = DpiHelper.Scale(this, 310),
+                Width = DpiHelper.Scale(this, 345),
                 ReadOnly = true,
                 Font = new Font("Consolas", 9 * DpiHelper.GetScaleFactor(this))
             };
@@ -436,11 +445,18 @@ namespace XBLA_Setup_Editor.Controls
                 }
             }
 
-            // Compute and write LAN ID from all applied changes
+            // Compute and optionally write LAN ID from all applied changes
             var hash = LanIdHelper.Compute(_xexData);
-            LanIdHelper.Write(_xexData, hash);
+            if (_chkWriteLanId.Checked)
+            {
+                LanIdHelper.Write(_xexData, hash);
+                Log($"LAN ID written: {LanIdHelper.ToHex(hash)}");
+            }
+            else
+            {
+                Log($"LAN ID (not written): {LanIdHelper.ToHex(hash)}");
+            }
             if (_txtLanId != null) _txtLanId.Text = LanIdHelper.ToHex(hash);
-            Log($"LAN ID written: {LanIdHelper.ToHex(hash)}");
 
             _hasUnsavedChanges = false;
             return _xexData;
@@ -665,8 +681,16 @@ namespace XBLA_Setup_Editor.Controls
                 // Apply current changes to the data
                 var log = new List<string>();
                 _parser?.ApplyToXex(_xexData, log);
+                UpdateLanIdDisplay();
                 XexModified?.Invoke(this, new XexModifiedEventArgs(_xexData, TabDisplayName));
             }
+        }
+
+        private void UpdateLanIdDisplay()
+        {
+            if (_xexData == null || _txtLanId == null) return;
+            var hash = LanIdHelper.Compute(_xexData, _chkRemoveArmor.Checked);
+            _txtLanId.Text = LanIdHelper.ToHex(hash);
         }
 
         private string GetWeaponName(int code)

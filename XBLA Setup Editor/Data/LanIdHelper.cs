@@ -35,9 +35,15 @@ namespace XBLA_Setup_Editor.Data
 
         /// <summary>
         /// Computes the 16-byte LAN ID hash from the current XEX state.
-        /// Call this after all other patches have been applied to <paramref name="xexData"/>.
         /// </summary>
-        public static byte[] Compute(byte[] xexData)
+        /// <param name="xexData">XEX bytes (weapon/select-list data must already be applied).</param>
+        /// <param name="armorRemoved">
+        /// When provided, the armor flag is set directly from this value (fast path — no scan).
+        /// Pass <c>true</c> if armor will be / has been removed, <c>false</c> if it is present.
+        /// When <c>null</c> (default), the method scans the XEX to determine the flag — use this
+        /// on the save path after armor removal has already been applied.
+        /// </param>
+        public static byte[] Compute(byte[] xexData, bool? armorRemoved = null)
         {
             // 960 + 192 + 3 + 1 = 1156 bytes
             var input = new byte[WEAPONS_SIZE + SELECT_SIZE + TEXT_FOLDER_LEN + 1];
@@ -55,9 +61,11 @@ namespace XBLA_Setup_Editor.Data
             Array.Copy(xexData, MPWeaponSetControl.TEXT_FOLDER_OFFSET, input, pos, TEXT_FOLDER_LEN);
             pos += TEXT_FOLDER_LEN;
 
-            // Armor flag: 0x01 = no armor blocks found (armor removed), 0x00 = armor present
-            var armorScan = XEXArmorRemover.ScanForArmor(xexData);
-            input[pos] = armorScan.ArmorBlocks.Count == 0 ? (byte)0x01 : (byte)0x00;
+            // Armor flag: 0x01 = armor removed, 0x00 = armor present.
+            // Fast path: caller supplies the value directly (live preview, no scan needed).
+            // Slow path: scan the XEX — use after armor has already been removed on save.
+            bool removed = armorRemoved ?? (XEXArmorRemover.ScanForArmor(xexData).ArmorBlocks.Count == 0);
+            input[pos] = removed ? (byte)0x01 : (byte)0x00;
 
             return MD5.HashData(input);
         }
