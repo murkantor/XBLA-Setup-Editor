@@ -108,7 +108,13 @@ namespace XBLA_Setup_Editor
             public const string AllowMpPool = "Allow using the Multiplayer region overflow for solo levels. May cause issues in Multiplayer mode";
 
             /// <summary>Extend XEX checkbox.</summary>
-            public const string ExtendXex = "If setups don't fit, extend the XEX file with additional memory";
+            public const string ExtendXex =
+                "If setups don't fit, extend the XEX using the zero_size swap method.\n\n" +
+                "WARNING: This does NOT work for setup data.\n" +
+                "The extended region (VA 0x82F10000+) is the game's BSS zero-memory range.\n" +
+                "The game zeroes this region at startup, wiping any setup data placed there.\n" +
+                "Levels placed here will crash when loaded.\n\n" +
+                "Use 'Split across two XEX files' instead when all levels don't fit.";
 
             /// <summary>Force repack checkbox.</summary>
             public const string ForceRepack = "Repack setups to optimize memory layout. Recommended for large mods";

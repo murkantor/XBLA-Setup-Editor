@@ -668,6 +668,22 @@ namespace XBLA_Setup_Editor.Controls
                     _txtLog.AppendText("\r\n=== SPLIT PLAN ===\r\n");
                     XexSetupPatcher.PlanSplitAcrossTwoXex(_xexData, levelToBinSizePass1, allowMp, allowExtend, extendChunk, align, forceRepack, new[] { "Cuba" }, extraPoolSegs, out var p1, out var r1, out var rem, out var p2, out var r2);
 
+                    // Warn if either XEX still has levels in the extended (BSS) region.
+                    var ext1 = p1.Where(pl => pl.Region == XexSetupPatcher.RegionKind.ExtendedXex).ToList();
+                    var ext2 = p2.Where(pl => pl.Region == XexSetupPatcher.RegionKind.ExtendedXex).ToList();
+                    if (ext1.Count > 0 || ext2.Count > 0)
+                    {
+                        var warnTarget = ext1.Count > 0 ? r1 : r2;
+                        warnTarget.Add("");
+                        warnTarget.Add("=== WARNING: EXTENDED XEX REGION - LEVELS WILL CRASH ===");
+                        warnTarget.Add("  Setups below are in the BSS zero-init region (VA 0x82F10000+).");
+                        warnTarget.Add("  The game zeroes this region at startup — these levels WILL CRASH.");
+                        warnTarget.Add("  Fix: uncheck 'Extend XEX if needed' and reduce levels per XEX.");
+                        foreach (var pl in ext1.Concat(ext2))
+                            warnTarget.Add($"    {pl.LevelName,-14}  VA 0x{pl.NewVa:X8}  <- WILL CRASH");
+                        warnTarget.Add("=========================================================");
+                    }
+
                     var repackDir = Path.Combine(outDir, "_repacked");
                     Directory.CreateDirectory(repackDir);
                     var b1 = BuildBlobsForPlacements(p1, pass1Blobs, levelToInputSetup, exePath, repackDir, _txtLog);
@@ -750,6 +766,22 @@ namespace XBLA_Setup_Editor.Controls
                 {
                     _txtLog.AppendText("\r\n=== SINGLE PLAN ===\r\n");
                     var p = XexSetupPatcher.PlanHybridPlacements(_xexData, levelToBinSizePass1, XexSetupPatcher.PriorityOrder, allowMp, allowExtend, extendChunk, align, forceRepack, new[] { "Cuba" }, extraPoolSegs, out var r, out var not);
+
+                    // Warn loudly if any setup ended up in the extended (BSS) region —
+                    // the game zero-initialises VA 0x82F10000+ at startup, wiping setup data.
+                    var extLevels = p.Where(pl => pl.Region == XexSetupPatcher.RegionKind.ExtendedXex).ToList();
+                    if (extLevels.Count > 0)
+                    {
+                        r.Add("");
+                        r.Add("=== WARNING: EXTENDED XEX REGION - LEVELS WILL CRASH ===");
+                        r.Add("  The setups below are in the BSS zero-init region (VA 0x82F10000+).");
+                        r.Add("  The game zeroes this region at startup, overwriting setup data.");
+                        r.Add("  These levels WILL CRASH when loaded in-game.");
+                        r.Add("  Fix: uncheck 'Extend XEX if needed', use 'Split across two XEX files'.");
+                        foreach (var pl in extLevels)
+                            r.Add($"    {pl.LevelName,-14}  VA 0x{pl.NewVa:X8}  <- WILL CRASH");
+                        r.Add("=========================================================");
+                    }
 
                     var repackDir = Path.Combine(outDir, "_repacked");
                     Directory.CreateDirectory(repackDir);
