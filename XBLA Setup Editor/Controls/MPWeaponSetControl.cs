@@ -70,6 +70,7 @@ namespace XBLA_Setup_Editor.Controls
         private readonly DataGridView _dgvWeapons;
         private readonly TextBox _txtLog;
         private TextBox _txtTextFolder3 = null!;
+        private TextBox? _txtLanId;
 
         // --- State ---
         private MPWeaponSetParser? _parser;
@@ -86,7 +87,7 @@ namespace XBLA_Setup_Editor.Controls
         private readonly Dictionary<int, string> _propNames = new();
 
         // Text folder patch constants
-        private const int TEXT_FOLDER_OFFSET = 0x0000A3AC;
+        internal const int TEXT_FOLDER_OFFSET = 0x0000A3AC;
         private const int TEXT_FOLDER_LEN = 3;
 
         // Events
@@ -226,6 +227,15 @@ namespace XBLA_Setup_Editor.Controls
             };
             panel.Controls.Add(_txtTextFolder3);
 
+            panel.Controls.Add(new Label { Text = "LAN ID:", AutoSize = true, Margin = new Padding(DpiHelper.Scale(this, 10), DpiHelper.Scale(this, 6), DpiHelper.Scale(this, 5), 0) });
+            _txtLanId = new TextBox
+            {
+                Width = DpiHelper.Scale(this, 310),
+                ReadOnly = true,
+                Font = new Font("Consolas", 9 * DpiHelper.GetScaleFactor(this))
+            };
+            panel.Controls.Add(_txtLanId);
+
             return panel;
         }
 
@@ -352,6 +362,10 @@ namespace XBLA_Setup_Editor.Controls
                 Log($"Loaded {_parser.WeaponSets.Count} weapon sets");
                 Log($"Loaded {_parser.SelectList.Count} select list entries");
 
+                var currentLanId = LanIdHelper.Read(_xexData);
+                if (_txtLanId != null) _txtLanId.Text = LanIdHelper.ToHex(currentLanId);
+                Log($"LAN ID (current): {LanIdHelper.ToHex(currentLanId)}");
+
                 _lstWeaponSets.Items.Clear();
                 for (int i = 0; i < _parser.SelectList.Count; i++)
                 {
@@ -392,6 +406,7 @@ namespace XBLA_Setup_Editor.Controls
             _txtTextId.Text = "";
             _txtTextId.Enabled = false;
             _txtTextFolder3.Text = "";
+            if (_txtLanId != null) _txtLanId.Text = "";
             _txtLog.Clear();
             _hasUnsavedChanges = false;
         }
@@ -420,6 +435,12 @@ namespace XBLA_Setup_Editor.Controls
                     _xexData = XEXArmorRemover.RemoveArmor(_xexData, scanResult, removalLog);
                 }
             }
+
+            // Compute and write LAN ID from all applied changes
+            var hash = LanIdHelper.Compute(_xexData);
+            LanIdHelper.Write(_xexData, hash);
+            if (_txtLanId != null) _txtLanId.Text = LanIdHelper.ToHex(hash);
+            Log($"LAN ID written: {LanIdHelper.ToHex(hash)}");
 
             _hasUnsavedChanges = false;
             return _xexData;
