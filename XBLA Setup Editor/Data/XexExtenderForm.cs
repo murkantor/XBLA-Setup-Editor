@@ -48,6 +48,7 @@ namespace XBLA_Setup_Editor.Data
         private readonly Button _btnAnalyze;
         private readonly Button _btnExtend;
         private readonly CheckBox _chkRecalcSha1;
+        private readonly CheckBox _chkUseZeroSize;
         private readonly CheckBox _chkBackup;
         private readonly Label _lblAnalysis;
 
@@ -87,6 +88,13 @@ namespace XBLA_Setup_Editor.Data
             {
                 Text = "Recalculate SHA1 hash",
                 Checked = false,
+                AutoSize = true
+            };
+
+            _chkUseZeroSize = new CheckBox
+            {
+                Text = "Use zero_size method (uncapped)",
+                Checked = true,
                 AutoSize = true
             };
 
@@ -161,6 +169,7 @@ namespace XBLA_Setup_Editor.Data
             var optionsPanel = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight };
             optionsPanel.Controls.Add(_chkBackup);
             optionsPanel.Controls.Add(_chkRecalcSha1);
+            optionsPanel.Controls.Add(_chkUseZeroSize);
             optionsPanel.Controls.Add(_btnAnalyze);
             optionsPanel.Controls.Add(_btnExtend);
             mainLayout.Controls.Add(optionsPanel, 0, row);
@@ -196,14 +205,15 @@ namespace XBLA_Setup_Editor.Data
             Log("XEX Extender ready.");
             Log("This tool allows extending XEX files with additional read-only data.");
             Log("");
-            Log("Usage:");
-            Log("1. Select the XEX file to extend");
-            Log("2. Select the data file to append");
-            Log("3. Click 'Analyze' to verify the XEX structure");
-            Log("4. Click 'Extend XEX' to create the extended file");
+            Log("Two extension methods are available:");
             Log("");
-            Log("Note: The appended data will be mapped at the memory address shown in the analysis.");
-            Log("Your code must be patched to reference this address to use the new data.");
+            Log("Method 1 — image_size headroom:");
+            Log("  Limited to ~32KB by Xenia page-table constraint.");
+            Log("");
+            Log("Method 2 — zero_size swap (recommended):");
+            Log("  Converts last block zero_size to data_size.");
+            Log("  No 32KB limit. Requires zero region to be unused.");
+            Log("  Analyze the XEX first to see available capacity.");
         }
 
         private void Log(string message)
@@ -260,11 +270,13 @@ namespace XBLA_Setup_Editor.Data
                         _dataToAppend = File.ReadAllBytes(ofd.FileName);
                         Log($"Loaded data file: {ofd.FileName} ({_dataToAppend.Length:N0} bytes)");
 
-                        // Validate extension
+                        // Validate both methods
                         if (_xexData != null)
                         {
-                            var (isValid, message) = XexExtender.ValidateExtension(_xexData, _dataToAppend.Length);
-                            Log($"Validation: {message}");
+                            var (v1, m1) = XexExtender.ValidateExtension(_xexData, _dataToAppend.Length);
+                            Log($"Method 1 (image headroom): {m1}");
+                            var (v2, m2) = XexExtender.ValidateZeroSizeExtension(_xexData, _dataToAppend.Length);
+                            Log($"Method 2 (zero_size swap): {m2}");
                         }
                     }
                     catch (Exception ex)
@@ -321,24 +333,27 @@ namespace XBLA_Setup_Editor.Data
 
             if (_analysis.IsValid)
             {
-                _lblAnalysis.Text = $"File Size: {_analysis.FileSize:N0} bytes ({_analysis.FileSize / 1024.0 / 1024.0:F2} MB)\r\n" +
-                                   $"Image Size: 0x{_analysis.ImageSize:X} ({_analysis.ImageSize / 1024.0 / 1024.0:F2} MB)\r\n" +
-                                   $"Compression: {(_analysis.CompressionType == 1 ? "Basic" : $"Type {_analysis.CompressionType}")}\r\n" +
-                                   $"Blocks: {_analysis.Blocks.Count}\r\n" +
-                                   $"Current End Address: 0x{_analysis.EndMemoryAddress:X8}\r\n" +
-                                   $"New Data Would Start At: 0x{_analysis.EndMemoryAddress:X8}\r\n" +
-                                   $"SHA1: {BitConverter.ToString(_analysis.CurrentSha1).Replace("-", "").Substring(0, 16)}...";
+                _lblAnalysis.Text =
+                    $"File: {_analysis.FileSize:N0} bytes ({_analysis.FileSize / 1024.0 / 1024.0:F2} MB)" +
+                    $"  |  Image size: 0x{_analysis.ImageSize:X}  |  Blocks: {_analysis.Blocks.Count}\r\n" +
+                    $"Compression: {(_analysis.CompressionType == 1 ? "Basic" : $"Type {_analysis.CompressionType}")}\r\n" +
+                    $"Method 1 (image headroom): {_analysis.MaxExtensionSize / 1024}KB available" +
+                    $"  →  data at 0x{_analysis.EndMemoryAddress:X8}\r\n" +
+                    $"Method 2 (zero_size swap): {_analysis.LastBlockZeroSize / 1024}KB available" +
+                    $"  →  data at 0x{_analysis.ZeroSizeInsertAddress:X8}\r\n" +
+                    $"SHA1: {BitConverter.ToString(_analysis.CurrentSha1).Replace("-", "").Substring(0, 16)}...";
 
                 Log("");
                 Log("=== XEX Analysis ===");
-                Log($"Blocks:");
+                Log("Blocks:");
                 foreach (var block in _analysis.Blocks)
                 {
                     Log($"  [{block.Index}] File: 0x{block.FileOffset:X}, Data: 0x{block.DataSize:X}, Zero: 0x{block.ZeroSize:X}, Mem: 0x{block.MemoryAddress:X8}");
                 }
                 Log($"Total data: {_analysis.TotalDataSize:N0} bytes");
                 Log($"Total zero padding: {_analysis.TotalZeroSize:N0} bytes");
-                Log($"Append address: 0x{_analysis.EndMemoryAddress:X8}");
+                Log($"Method 1 (image headroom): {_analysis.MaxExtensionSize:N0} bytes ({_analysis.MaxExtensionSize / 1024}KB)  →  0x{_analysis.EndMemoryAddress:X8}");
+                Log($"Method 2 (zero_size swap): {_analysis.LastBlockZeroSize:N0} bytes ({_analysis.LastBlockZeroSize / 1024}KB)  →  0x{_analysis.ZeroSizeInsertAddress:X8}");
             }
             else
             {
@@ -364,10 +379,15 @@ namespace XBLA_Setup_Editor.Data
                 return;
             }
 
+            bool useZeroSize = _chkUseZeroSize.Checked;
+            uint dataVa = useZeroSize ? _analysis.ZeroSizeInsertAddress : _analysis.EndMemoryAddress;
+            string methodName = useZeroSize ? "zero_size swap (uncapped)" : "image_size headroom (~32KB limit)";
+
             // Confirm
             var confirm = MessageBox.Show(
                 $"Extend XEX with {_dataToAppend.Length:N0} bytes?\n\n" +
-                $"New data will be at memory address: 0x{_analysis.EndMemoryAddress:X8}\n" +
+                $"Method: {methodName}\n" +
+                $"New data will be at memory address: 0x{dataVa:X8}\n" +
                 $"Output file: {outputPath}",
                 "Confirm Extension",
                 MessageBoxButtons.YesNo,
@@ -379,9 +399,11 @@ namespace XBLA_Setup_Editor.Data
             try
             {
                 Log("");
-                Log("=== Extending XEX ===");
+                Log($"=== Extending XEX ({methodName}) ===");
 
-                var (modifiedXex, result) = XexExtender.Extend(_xexData, _dataToAppend, _chkRecalcSha1.Checked);
+                var (modifiedXex, result) = useZeroSize
+                    ? XexExtender.ExtendViaZeroSize(_xexData, _dataToAppend)
+                    : XexExtender.Extend(_xexData, _dataToAppend, _chkRecalcSha1.Checked);
 
                 foreach (var line in result.Log)
                 {

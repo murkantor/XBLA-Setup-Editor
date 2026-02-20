@@ -106,6 +106,14 @@ namespace XBLA_Setup_Editor.Data
             public uint EndMemoryAddress { get; set; }
             public int MaxExtensionSize { get; set; }
 
+            // --- Zero_size method headroom ---
+            // The last block's zero_size can be traded for data_size without
+            // touching image_size — no 32KB Xenia constraint applies.
+            /// <summary>zero_size of the last block. Max bytes the zero_size method can insert.</summary>
+            public int LastBlockZeroSize { get; set; }
+            /// <summary>VA where zero_size-backed data would start (last_block.VA + last_block.data_size).</summary>
+            public uint ZeroSizeInsertAddress { get; set; }
+
             public override string ToString()
             {
                 if (!IsValid) return $"Invalid XEX: {Error}";
@@ -210,10 +218,21 @@ namespace XBLA_Setup_Editor.Data
                 // So max extension = image_size - block_memory_total
                 int blockMemoryTotal = result.TotalDataSize + result.TotalZeroSize;
                 result.MaxExtensionSize = result.ImageSize - blockMemoryTotal;
-                
+
                 // Ensure non-negative
                 if (result.MaxExtensionSize < 0)
                     result.MaxExtensionSize = 0;
+
+                // Calculate zero_size method headroom.
+                // The last block's zero_size can be converted to data_size without
+                // changing image_size — no Xenia constraint applies.
+                if (result.Blocks.Count > 0)
+                {
+                    var lb = result.Blocks[result.Blocks.Count - 1];
+                    result.LastBlockZeroSize = lb.ZeroSize;
+                    // New data would be mapped at: last_block.VA + last_block.data_size
+                    result.ZeroSizeInsertAddress = lb.MemoryAddress + (uint)lb.DataSize;
+                }
 
                 result.IsValid = true;
             }
@@ -378,6 +397,117 @@ namespace XBLA_Setup_Editor.Data
                 result.Error = $"File operation failed: {ex.Message}";
                 return result;
             }
+        }
+
+        /// <summary>
+        /// Extends an XEX file using the zero_size → data_size swap method.
+        ///
+        /// Unlike <see cref="Extend"/>, this method does NOT consume image_size headroom
+        /// and is therefore not limited to ~32KB. Instead it converts the last block's
+        /// zero_size (BSS-style zero memory not stored in the file) into file-backed data.
+        ///
+        /// HOW IT WORKS:
+        ///   last_block.data_size += newData.Length
+        ///   last_block.zero_size -= newData.Length
+        ///   newData appended to end of file
+        ///   image_size unchanged → no Xenia page-table constraint
+        ///
+        /// The new data is accessible at VA = last_block.MemoryAddress + original_data_size
+        /// (i.e. <see cref="XexAnalysis.ZeroSizeInsertAddress"/>).
+        ///
+        /// CAUTION: The zero region must be unused by the game at runtime.
+        /// Run Analyze() and inspect ZeroSizeInsertAddress before committing.
+        /// </summary>
+        public static (byte[]? ModifiedXex, ExtensionResult Result) ExtendViaZeroSize(
+            byte[] xexData, byte[] newData)
+        {
+            var result = new ExtensionResult();
+
+            try
+            {
+                var analysis = Analyze(xexData);
+                if (!analysis.IsValid)
+                {
+                    result.Success = false;
+                    result.Error = analysis.Error;
+                    return (null, result);
+                }
+
+                result.Log.Add("Method: zero_size swap (no image_size constraint)");
+                result.Log.Add($"Last block zero_size available: 0x{analysis.LastBlockZeroSize:X} ({analysis.LastBlockZeroSize / 1024}KB)");
+                result.Log.Add($"Data to insert: {newData.Length:N0} bytes ({newData.Length / 1024}KB)");
+
+                if (newData == null || newData.Length == 0)
+                {
+                    result.Success = false;
+                    result.Error = "No data to append";
+                    return (null, result);
+                }
+
+                if (newData.Length > analysis.LastBlockZeroSize)
+                {
+                    result.Success = false;
+                    result.Error = $"Data ({newData.Length:N0} bytes) exceeds last block zero_size " +
+                                   $"({analysis.LastBlockZeroSize:N0} bytes / {analysis.LastBlockZeroSize / 1024}KB). " +
+                                   $"The zero_size method requires the last block to have enough zero_size to absorb the new data.";
+                    return (null, result);
+                }
+
+                var lastBlock = analysis.Blocks[analysis.Blocks.Count - 1];
+                int newDataSize = lastBlock.DataSize + newData.Length;
+                int newZeroSize = lastBlock.ZeroSize - newData.Length;
+
+                // Append data to end of file
+                byte[] modifiedXex = new byte[xexData.Length + newData.Length];
+                Array.Copy(xexData, modifiedXex, xexData.Length);
+                Array.Copy(newData, 0, modifiedXex, xexData.Length, newData.Length);
+
+                // Update last block header: swap zero_size → data_size
+                int lastBlockEntryOffset = BLOCK_ENTRIES_OFFSET + lastBlock.Index * BLOCK_ENTRY_SIZE;
+                WriteU32BE(modifiedXex, lastBlockEntryOffset,     newDataSize);
+                WriteU32BE(modifiedXex, lastBlockEntryOffset + 4, newZeroSize);
+
+                result.Log.Add($"Block {lastBlock.Index} data_size: 0x{lastBlock.DataSize:X} → 0x{newDataSize:X}");
+                result.Log.Add($"Block {lastBlock.Index} zero_size: 0x{lastBlock.ZeroSize:X} → 0x{newZeroSize:X}");
+                result.Log.Add($"image_size 0x{analysis.ImageSize:X}: UNCHANGED");
+                result.Log.Add($"New data VA: 0x{analysis.ZeroSizeInsertAddress:X8}");
+
+                result.BytesAdded = newData.Length;
+                result.NewDataMemoryAddress = analysis.ZeroSizeInsertAddress;
+                result.NewEndMemoryAddress = analysis.EndMemoryAddress; // end VA unchanged
+                result.NewImageSize = analysis.ImageSize;               // unchanged
+                result.NewSha1 = analysis.CurrentSha1;                  // unchanged
+                result.Success = true;
+                result.Log.Add($"Extension complete. New file size: {modifiedXex.Length:N0} bytes");
+
+                return (modifiedXex, result);
+            }
+            catch (Exception ex)
+            {
+                result.Success = false;
+                result.Error = $"Extension failed: {ex.Message}";
+                return (null, result);
+            }
+        }
+
+        /// <summary>
+        /// Validates whether a zero_size-method extension would be feasible.
+        /// </summary>
+        public static (bool IsValid, string Message) ValidateZeroSizeExtension(byte[] xexData, int extensionSize)
+        {
+            var analysis = Analyze(xexData);
+            if (!analysis.IsValid)
+                return (false, analysis.Error);
+
+            if (extensionSize <= 0)
+                return (false, "Extension size must be positive");
+
+            if (extensionSize > analysis.LastBlockZeroSize)
+                return (false, $"Size ({extensionSize:N0} bytes / {extensionSize / 1024}KB) exceeds " +
+                               $"last block zero_size ({analysis.LastBlockZeroSize:N0} bytes / {analysis.LastBlockZeroSize / 1024}KB)");
+
+            return (true, $"Valid. New data at 0x{analysis.ZeroSizeInsertAddress:X8} " +
+                          $"({extensionSize / 1024}KB of {analysis.LastBlockZeroSize / 1024}KB zero_size used)");
         }
 
         /// <summary>

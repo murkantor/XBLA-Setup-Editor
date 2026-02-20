@@ -198,6 +198,12 @@ namespace XBLA_Setup_Editor
             /// <summary>Analyze button.</summary>
             public const string Analyze = "Analyze the XEX structure and show where new data will be placed";
 
+            /// <summary>Use zero_size method checkbox.</summary>
+            public const string UseZeroSize =
+                "Convert the last block's zero_size (BSS zero memory) to data_size instead of consuming image_size headroom.\n" +
+                "Not limited to ~32KB. Requires that the target zero region is not used by the game at runtime.\n" +
+                "Run Analyze to see how much zero_size capacity is available and at which address.";
+
             /// <summary>Extend button.</summary>
             public const string Extend = "Extend the XEX file with the selected data";
         }
