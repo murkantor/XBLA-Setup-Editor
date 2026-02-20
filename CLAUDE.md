@@ -219,21 +219,125 @@ Types: `StrEntry` (`byte Bank`, `byte Id`, `string Text`), `StrFile`
 
 ---
 
-### `Data/AmmoCountData.cs` / `Data/ToggleData.cs` / `Data/ScaleData.cs` / `Data/WeaponData.cs` / `Data/AmmoTypeData.cs` / `Data/PropData.cs`
-Static lookup tables for combo box population. Each exposes `(string Name, int Code)[] Pairs` and `static Dictionary<string, int> Build()`.
+### `Data/WeaponData.cs` — Weapon ID Table
+Each exposes `(string Name, int Code)[] Pairs` + `static Dictionary<string, int> Build()`.
 
-- `WeaponData`: 32 weapons, IDs `0x00`–`0x20`. Tank = `0x20`.
-- `AmmoTypeData`: None, 9mm, Rifle, Cartridges, Grenades, Rockets, RemoteMines, ProxMines, TimedMines, Knife, GrenadeRounds, Magnum, GoldenBullets, WatchLaser, Tank.
-- `PropData`: prop model IDs `0x60` (no model) through `0xE7`.
+| ID   | Name                 | ID   | Name               |
+|------|----------------------|------|--------------------|
+| 0x00 | Nothing (No Pickup)  | 0x11 | Sniper Rifle       |
+| 0x01 | Unarmed              | 0x12 | Cougar Magnum      |
+| 0x02 | Hunting Knives       | 0x13 | Golden Gun         |
+| 0x03 | Throwing Knives      | 0x14 | Silver PP7         |
+| 0x04 | PP7                  | 0x15 | Gold PP7           |
+| 0x05 | PP7 (Silenced)       | 0x16 | Moonraker Laser    |
+| 0x06 | DD44                 | 0x17 | Watch Laser        |
+| 0x07 | Klobb                | 0x18 | Grenade Launcher   |
+| 0x08 | KF7                  | 0x19 | Rocket Launcher    |
+| 0x09 | ZMG                  | 0x1A | Grenades           |
+| 0x0A | D5K                  | 0x1B | Timed Mine         |
+| 0x0B | D5K (Silenced)       | 0x1C | Proximity Mine     |
+| 0x0C | Phantom              | 0x1D | Remote Mine        |
+| 0x0D | AR33                 | 0x1E | Detonator          |
+| 0x0E | RC-P90               | 0x1F | Tazer              |
+| 0x0F | Shotgun              | 0x20 | Tank               |
+| 0x10 | Automatic Shotgun    |      |                    |
+
+---
+
+### `Data/AmmoTypeData.cs` — Ammo Type ID Table
+
+| ID   | Name              | Notes                      |
+|------|-------------------|----------------------------|
+| 0x00 | None              | Melee, laser, special      |
+| 0x01 | 9mm Ammo          | Pistols, SMGs              |
+| 0x03 | Rifle Ammo        | Rifles, sniper             |
+| 0x04 | Cartridges        | Shotguns                   |
+| 0x05 | Grenades          | Throwable grenades         |
+| 0x06 | Rockets           | Rocket launcher            |
+| 0x07 | Remote Mines      |                            |
+| 0x08 | Proximity Mines   |                            |
+| 0x09 | Timed Mines       |                            |
+| 0x0A | Knife             | Throwing knives            |
+| 0x0B | Grenade Rounds    | Grenade launcher ammo      |
+| 0x0C | Magnum Bullets    | Cougar Magnum              |
+| 0x0D | Golden Bullets    | Golden Gun (limited)       |
+| 0x18 | Watch Laser       | Watch laser energy         |
+| 0xC1 | Tank              | Tank shells                |
+
+Note: ID 0x02 is unused/skipped in the table.
+
+---
+
+### `Data/PropData.cs` — Prop Model ID Table
+Prop = 3D model used when weapon is on the ground as a pickup.
+IDs 0x60 = no visible model. IDs 0xB8–0xE7 = weapon pickups.
+`Watch Laser`, `Tank`, `Detonator`, `Tazer` all share `0xC6`.
+
+| ID   | Prop Name            | ID   | Prop Name          |
+|------|----------------------|------|--------------------|
+| 0x60 | Nothing / Unarmed    | 0xC4 | Grenades           |
+| 0xB8 | KF7                  | 0xC5 | RC-P90             |
+| 0xB9 | Grenade Launcher     | 0xC6 | Watch Laser/Tank/Detonator/Tazer |
+| 0xBA | Hunting Knives       | 0xC7 | Remote Mines       |
+| 0xBB | Moonraker Laser      | 0xC8 | Proximity Mines    |
+| 0xBC | AR33                 | 0xC9 | Timed Mines        |
+| 0xBD | D5K                  | 0xCC | PP7 (Silenced)     |
+| 0xBE | Cougar Magnum        | 0xCD | DD44               |
+| 0xBF | PP7                  | 0xCE | D5K (Silenced)     |
+| 0xC0 | Shotgun              | 0xCF | Automatic Shotgun  |
+| 0xC1 | Klobb                | 0xD0 | Golden Gun         |
+| 0xC2 | Phantom              | 0xD1 | Throwing Knives    |
+| 0xC3 | ZMG                  | 0xD2 | Sniper Rifle       |
+|      |                      | 0xD3 | Rocket Launcher    |
+|      |                      | 0xE6 | Silver PP7         |
+|      |                      | 0xE7 | Gold PP7           |
+
+---
+
+### `Data/AmmoCountData.cs` / `Data/ToggleData.cs` / `Data/ScaleData.cs`
+Small fixed dropdown tables.
+
+**AmmoCount** (literal value = byte written): `0, 1, 2, 3, 4, 5, 10(0x0A), 20(0x14), 30(0x1E), 50(0x32), 100(0x64), 255(0xFF)`
+
+**Toggle**: `No = 0x00`, `Yes = 0x01`
+
+**Scale**: `None=0x00, Normal=0x01, Large=0x02, Huge=0x03, Why=0x04`
 
 ---
 
 ### `Data/BeginnerRulesData.cs`
 | Member | Description |
 |--------|-------------|
-| `static readonly Dictionary<string, string> WeaponToAmmoType` | Weapon name → ammo type name |
-| `static readonly Dictionary<string, string> WeaponToDefaultAmmoCount` | Weapon name → default ammo count |
-| `static HashSet<string> PropNames` | Lazy-init; names of weapons that should have a prop model |
+| `static readonly Dictionary<string, string> WeaponToAmmoType` | Weapon name → ammo type name (auto-fill) |
+| `static readonly Dictionary<string, string> WeaponToDefaultAmmoCount` | Weapon name → default ammo count string |
+| `static HashSet<string> PropNames` | Lazy-init; all valid weapon names from `WeaponData.Pairs` |
+
+**Beginner ammo type mapping** (weapon → ammo type name used for auto-fill):
+
+| Weapon(s) | Ammo Type |
+|-----------|-----------|
+| Nothing, Unarmed, Moonraker Laser, Detonator, Tazer | None |
+| Hunting Knives, Throwing Knives | Knife |
+| PP7, PP7(S), DD44, Klobb, ZMG, D5K, D5K(S), RC-P90, Silver PP7, Gold PP7 | 9mm Ammo |
+| KF7, Phantom, AR33, Sniper Rifle | Rifle Ammo |
+| Shotgun, Automatic Shotgun | Cartridges |
+| Cougar Magnum | Magnum Bullets |
+| Golden Gun | Golden Bullets |
+| Watch Laser | Watch Laser |
+| Grenade Launcher | Grenade Rounds |
+| Rocket Launcher | Rockets |
+| Grenades | Grenades |
+| Timed Mine | Timed Mines |
+| Proximity Mine | Proximity Mines |
+| Remote Mine | Remote Mines |
+| Tank | Tank |
+
+**Beginner default ammo counts**:
+`Nothing/Unarmed/Moonraker/Detonator=0`, `HuntingKnives=1`, `ThrowingKnives=10`, `Tazer=1`,
+`PP7/PP7(S)/DD44/Cougar/Sniper=50`, `Silver PP7/Gold PP7/Golden Gun=10`,
+`Klobb/ZMG/D5K/D5K(S)/Phantom/RC-P90/WatchLaser/KF7=100`, `AR33=40`,
+`Shotgun/AutoShotgun=30`, `GrenadeLauncher/RocketLauncher=6`,
+`Grenades/TimedMine/ProxMine/RemoteMine/Tank=5`
 
 ---
 
