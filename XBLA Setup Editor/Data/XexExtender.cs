@@ -107,12 +107,17 @@ namespace XBLA_Setup_Editor.Data
             public int MaxExtensionSize { get; set; }
 
             // --- Zero_size method headroom ---
-            // The last block's zero_size can be traded for data_size without
-            // touching image_size — no 32KB Xenia constraint applies.
-            /// <summary>zero_size of the last block. Max bytes the zero_size method can insert.</summary>
+            // The block with the most zero_size is the best candidate for the swap.
+            // For non-last blocks, new bytes are inserted mid-file; for the last block
+            // they are appended. Either way image_size is untouched.
+            /// <summary>Index of the block chosen for zero_size swap (the one with most zero_size).</summary>
+            public int ZeroSizeBlockIndex { get; set; } = -1;
+            /// <summary>Max bytes the zero_size method can insert (chosen block's zero_size).</summary>
             public int LastBlockZeroSize { get; set; }
-            /// <summary>VA where zero_size-backed data would start (last_block.VA + last_block.data_size).</summary>
+            /// <summary>VA where zero_size-backed data would start (chosen_block.VA + chosen_block.data_size).</summary>
             public uint ZeroSizeInsertAddress { get; set; }
+            /// <summary>File offset at which new bytes must be inserted (end of chosen block's file data).</summary>
+            public int ZeroSizeInsertFileOffset { get; set; }
 
             public override string ToString()
             {
@@ -224,14 +229,22 @@ namespace XBLA_Setup_Editor.Data
                     result.MaxExtensionSize = 0;
 
                 // Calculate zero_size method headroom.
-                // The last block's zero_size can be converted to data_size without
-                // changing image_size — no Xenia constraint applies.
-                if (result.Blocks.Count > 0)
+                // Pick the block with the most zero_size — that's our best candidate.
+                // For non-last blocks, new bytes get inserted mid-file at the end of
+                // that block's data region; file offsets of subsequent blocks shift
+                // automatically (they're computed as running sums, not stored explicitly).
+                BlockInfo? bestZeroBlock = null;
+                foreach (var b in result.Blocks)
                 {
-                    var lb = result.Blocks[result.Blocks.Count - 1];
-                    result.LastBlockZeroSize = lb.ZeroSize;
-                    // New data would be mapped at: last_block.VA + last_block.data_size
-                    result.ZeroSizeInsertAddress = lb.MemoryAddress + (uint)lb.DataSize;
+                    if (bestZeroBlock == null || b.ZeroSize > bestZeroBlock.ZeroSize)
+                        bestZeroBlock = b;
+                }
+                if (bestZeroBlock != null && bestZeroBlock.ZeroSize > 0)
+                {
+                    result.ZeroSizeBlockIndex      = bestZeroBlock.Index;
+                    result.LastBlockZeroSize        = bestZeroBlock.ZeroSize;
+                    result.ZeroSizeInsertAddress    = bestZeroBlock.MemoryAddress + (uint)bestZeroBlock.DataSize;
+                    result.ZeroSizeInsertFileOffset = bestZeroBlock.FileOffset + bestZeroBlock.DataSize;
                 }
 
                 result.IsValid = true;
@@ -434,8 +447,6 @@ namespace XBLA_Setup_Editor.Data
                 }
 
                 result.Log.Add("Method: zero_size swap (no image_size constraint)");
-                result.Log.Add($"Last block zero_size available: 0x{analysis.LastBlockZeroSize:X} ({analysis.LastBlockZeroSize / 1024}KB)");
-                result.Log.Add($"Data to insert: {newData.Length:N0} bytes ({newData.Length / 1024}KB)");
 
                 if (newData == null || newData.Length == 0)
                 {
@@ -443,6 +454,16 @@ namespace XBLA_Setup_Editor.Data
                     result.Error = "No data to append";
                     return (null, result);
                 }
+
+                if (analysis.ZeroSizeBlockIndex < 0 || analysis.LastBlockZeroSize == 0)
+                {
+                    result.Success = false;
+                    result.Error = "No block with available zero_size found in this XEX.";
+                    return (null, result);
+                }
+
+                result.Log.Add($"Best block: [{analysis.ZeroSizeBlockIndex}]  zero_size available: 0x{analysis.LastBlockZeroSize:X} ({analysis.LastBlockZeroSize / 1024}KB)");
+                result.Log.Add($"Data to insert: {newData.Length:N0} bytes ({newData.Length / 1024}KB)");
 
                 if (newData.Length > analysis.LastBlockZeroSize)
                 {
@@ -453,22 +474,26 @@ namespace XBLA_Setup_Editor.Data
                     return (null, result);
                 }
 
-                var lastBlock = analysis.Blocks[analysis.Blocks.Count - 1];
-                int newDataSize = lastBlock.DataSize + newData.Length;
-                int newZeroSize = lastBlock.ZeroSize - newData.Length;
+                var chosenBlock = analysis.Blocks[analysis.ZeroSizeBlockIndex];
+                int newDataSize = chosenBlock.DataSize + newData.Length;
+                int newZeroSize = chosenBlock.ZeroSize - newData.Length;
+                int insertPos   = analysis.ZeroSizeInsertFileOffset; // end of chosen block's file data
 
-                // Append data to end of file
+                result.Log.Add($"Chosen block: [{chosenBlock.Index}]  insert at file offset 0x{insertPos:X}");
+
+                // Build modified XEX: insert newData at insertPos (may be mid-file for non-last blocks)
                 byte[] modifiedXex = new byte[xexData.Length + newData.Length];
-                Array.Copy(xexData, modifiedXex, xexData.Length);
-                Array.Copy(newData, 0, modifiedXex, xexData.Length, newData.Length);
+                Array.Copy(xexData, 0,         modifiedXex, 0,                     insertPos);
+                Array.Copy(newData, 0,         modifiedXex, insertPos,             newData.Length);
+                Array.Copy(xexData, insertPos, modifiedXex, insertPos + newData.Length, xexData.Length - insertPos);
 
-                // Update last block header: swap zero_size → data_size
-                int lastBlockEntryOffset = BLOCK_ENTRIES_OFFSET + lastBlock.Index * BLOCK_ENTRY_SIZE;
-                WriteU32BE(modifiedXex, lastBlockEntryOffset,     newDataSize);
-                WriteU32BE(modifiedXex, lastBlockEntryOffset + 4, newZeroSize);
+                // Update chosen block's header entry: data_size += N, zero_size -= N
+                int blockEntryOffset = BLOCK_ENTRIES_OFFSET + chosenBlock.Index * BLOCK_ENTRY_SIZE;
+                WriteU32BE(modifiedXex, blockEntryOffset,     newDataSize);
+                WriteU32BE(modifiedXex, blockEntryOffset + 4, newZeroSize);
 
-                result.Log.Add($"Block {lastBlock.Index} data_size: 0x{lastBlock.DataSize:X} → 0x{newDataSize:X}");
-                result.Log.Add($"Block {lastBlock.Index} zero_size: 0x{lastBlock.ZeroSize:X} → 0x{newZeroSize:X}");
+                result.Log.Add($"Block [{chosenBlock.Index}] data_size: 0x{chosenBlock.DataSize:X} → 0x{newDataSize:X}");
+                result.Log.Add($"Block [{chosenBlock.Index}] zero_size: 0x{chosenBlock.ZeroSize:X} → 0x{newZeroSize:X}");
                 result.Log.Add($"image_size 0x{analysis.ImageSize:X}: UNCHANGED");
                 result.Log.Add($"New data VA: 0x{analysis.ZeroSizeInsertAddress:X8}");
 
@@ -502,11 +527,15 @@ namespace XBLA_Setup_Editor.Data
             if (extensionSize <= 0)
                 return (false, "Extension size must be positive");
 
+            if (analysis.ZeroSizeBlockIndex < 0 || analysis.LastBlockZeroSize == 0)
+                return (false, "No block with available zero_size found");
+
             if (extensionSize > analysis.LastBlockZeroSize)
                 return (false, $"Size ({extensionSize:N0} bytes / {extensionSize / 1024}KB) exceeds " +
-                               $"last block zero_size ({analysis.LastBlockZeroSize:N0} bytes / {analysis.LastBlockZeroSize / 1024}KB)");
+                               $"block [{analysis.ZeroSizeBlockIndex}] zero_size " +
+                               $"({analysis.LastBlockZeroSize:N0} bytes / {analysis.LastBlockZeroSize / 1024}KB)");
 
-            return (true, $"Valid. New data at 0x{analysis.ZeroSizeInsertAddress:X8} " +
+            return (true, $"Valid. Block [{analysis.ZeroSizeBlockIndex}], new data at 0x{analysis.ZeroSizeInsertAddress:X8} " +
                           $"({extensionSize / 1024}KB of {analysis.LastBlockZeroSize / 1024}KB zero_size used)");
         }
 
