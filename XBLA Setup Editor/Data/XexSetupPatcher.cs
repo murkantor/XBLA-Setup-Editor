@@ -382,7 +382,7 @@ namespace XBLA_Setup_Editor
         {
             reportLines = new List<string>(); notPlaced = new List<string>(); reportLines.Add("=== XEX PATCH PLAN ===");
             uint extensionBaseVa = 0; int extensionBaseFileOffset = xex.Length;
-            if (allowExtendXex) { var analysis = XexExtender.Analyze(xex); if (analysis.IsValid) { extensionBaseVa = analysis.EndMemoryAddress; extensionBaseFileOffset = xex.Length; } else allowExtendXex = false; }
+            if (allowExtendXex) { var analysis = XexExtender.Analyze(xex); if (analysis.IsValid) { if (analysis.ZeroSizeBlockIndex >= 0 && analysis.LastBlockZeroSize > 0) { extensionBaseVa = analysis.ZeroSizeInsertAddress; extensionBaseFileOffset = analysis.ZeroSizeInsertFileOffset; } else { extensionBaseVa = analysis.EndMemoryAddress; extensionBaseFileOffset = xex.Length; } } else allowExtendXex = false; }
             var caps = ComputeFixedRegionCaps(allowMpSpill: true); var segs = new List<Segment>();
             // Extra pool segments (e.g. freed tail of compacted MP setup region) go first so they are used first.
             if (extraPoolSegments != null)
@@ -430,7 +430,7 @@ namespace XBLA_Setup_Editor
                 {
                     int size = levelToSize[level]; if (!TryAlloc(ref segs, size, align, out int off, out RegionKind kind))
                     {
-                        if (allowExtendXex) { int oldLen = xex.Length; int newLen = AlignUp(oldLen + Math.Max(size, extendChunkBytes), 0x10); segs.Add(new Segment(AlignUp(oldLen, align), newLen, RegionKind.ExtendedXex)); if (!TryAlloc(ref segs, size, align, out off, out kind)) continue; } else continue;
+                        if (allowExtendXex) { int oldLen = extensionBaseFileOffset; int newLen = AlignUp(oldLen + Math.Max(size, extendChunkBytes), 0x10); segs.Add(new Segment(AlignUp(oldLen, align), newLen, RegionKind.ExtendedXex)); if (!TryAlloc(ref segs, size, align, out off, out kind)) continue; } else continue;
                     }
                     uint vaNew = (kind == RegionKind.ExtendedXex && extensionBaseVa != 0) ? extensionBaseVa + (uint)(off - extensionBaseFileOffset) : FileOffsetToVa(off);
                     placements.Add(new Placement(level, off, vaNew, size, kind, vaNew != GetOriginalVa(level))); remaining.Remove(level); progress = true;
@@ -631,13 +631,20 @@ namespace XBLA_Setup_Editor
             int requiredLen = xex.Length;
             foreach (var p in placements) { int end = p.FileOffset + p.Size; if (end > requiredLen) requiredLen = end; }
 
-            int extensionSize = requiredLen - xex.Length;
-            if (extensionSize > 0)
+            if (requiredLen > xex.Length)
             {
                 if (!allowExtendXex) throw new InvalidOperationException($"Extension needed but disabled.");
                 var analysis = XexExtender.Analyze(xex); if (!analysis.IsValid) throw new InvalidOperationException(analysis.Error);
+                // Prefer zero_size swap (method 2) — inserts mid-file, no 32KB cap.
+                // Extension size = requiredLen - insertBase (not requiredLen - xex.Length,
+                // because placements were planned starting from insertBase not xex.Length).
+                bool useZeroSize = analysis.ZeroSizeBlockIndex >= 0 && analysis.LastBlockZeroSize > 0;
+                int insertBase    = useZeroSize ? analysis.ZeroSizeInsertFileOffset : xex.Length;
+                int extensionSize = requiredLen - insertBase;
                 byte[] extensionData = new byte[extensionSize];
-                var (extendedXex, extResult) = XexExtender.Extend(xex, extensionData, recalculateSha1: false);
+                var (extendedXex, extResult) = useZeroSize
+                    ? XexExtender.ExtendViaZeroSize(xex, extensionData)
+                    : XexExtender.Extend(xex, extensionData, recalculateSha1: false);
                 if (!extResult.Success || extendedXex == null) throw new InvalidOperationException(extResult.Error ?? "Extension failed");
                 xex = extendedXex;
             }
