@@ -437,6 +437,19 @@ namespace XBLA_Setup_Editor
                 }
             } while (progress && remaining.Count > 0);
             foreach (var l in remaining) notPlaced.Add(l);
+
+            // Per-level placement summary
+            reportLines.Add("");
+            reportLines.Add("=== PLACEMENT SUMMARY ===");
+            foreach (var levelName in PriorityOrder)
+            {
+                var p = placements.FirstOrDefault(pl => pl.LevelName.Equals(levelName, StringComparison.OrdinalIgnoreCase));
+                if (p == null) continue;
+                reportLines.Add($"  {p.LevelName,-14} -> {RegionLabel(p.Region),-20}  0x{p.FileOffset:X8}  ({FmtBytes(p.Size)})");
+            }
+            foreach (var l in notPlaced)
+                reportLines.Add($"  {"[UNPLACED]",-14}    {l}");
+
             return placements;
         }
 
@@ -872,6 +885,19 @@ namespace XBLA_Setup_Editor
 
         private static string Pct(int used, int total) =>
             total > 0 ? $"{(double)used / total * 100:F1}%" : "N/A";
+
+        private static string RegionLabel(RegionKind kind) => kind switch
+        {
+            RegionKind.FixedSP          => "BG Data (fixed)",
+            RegionKind.SpPool           => "BG Data pool",
+            RegionKind.MpPool           => "Multiplayer",
+            RegionKind.CompactedMpTail  => "Compacted BG tail",
+            RegionKind.ExtendedXex      => "Extended region",
+            RegionKind.EndOfXex         => "End of XEX",
+            RegionKind.FixedStan        => "STAN (fixed)",
+            RegionKind.StanPool         => "STAN pool",
+            _                           => kind.ToString(),
+        };
 
         // Build map of menu struct starts keyed by mission LevelId (robust against struct order)
         private static Dictionary<uint, int> BuildMenuStructIndex(byte[] xex)
