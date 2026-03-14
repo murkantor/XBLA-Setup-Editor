@@ -274,18 +274,57 @@ namespace XBLA_Setup_Editor.Controls
             _rbMulti.CheckedChanged += (_, __) => RefreshLevelList();
             _cbLevel.SelectedIndexChanged += (_, __) => RefreshOffset();
 
-            btnBrowseInput.Click += (_, __) => { using var ofd = new OpenFileDialog { Filter = "Setup files|*.set;*.bin;*.*" }; if (ofd.ShowDialog(FindForm()) == DialogResult.OK) _txtInput.Text = ofd.FileName; };
-            btnBrowseOutput.Click += (_, __) => { using var sfd = new SaveFileDialog { Filter = "BIN (*.bin)|*.bin" }; if (sfd.ShowDialog(FindForm()) == DialogResult.OK) _txtOutput.Text = sfd.FileName; };
+            btnBrowseInput.Click += (_, __) =>
+            {
+                var s = AppSettings.Current;
+                using var ofd = new OpenFileDialog
+                {
+                    Filter = "Setup files|*.set;*.bin;*.*",
+                    InitialDirectory = string.IsNullOrWhiteSpace(s.SingleInputSetup) ? "" : Path.GetDirectoryName(s.SingleInputSetup) ?? ""
+                };
+                if (ofd.ShowDialog(FindForm()) == DialogResult.OK)
+                {
+                    _txtInput.Text = ofd.FileName;
+                    s.SingleInputSetup = ofd.FileName;
+                    AppSettings.Save();
+                    // Show file size in log
+                    var size = new FileInfo(ofd.FileName).Length;
+                    _txtLog.AppendText($"Input: {ofd.FileName}  ({size:N0} bytes / {size / 1024.0:F1} KB)\r\n");
+                }
+            };
+            btnBrowseOutput.Click += (_, __) =>
+            {
+                var s = AppSettings.Current;
+                using var sfd = new SaveFileDialog
+                {
+                    Filter = "BIN (*.bin)|*.bin",
+                    InitialDirectory = string.IsNullOrWhiteSpace(s.SingleOutputSetup) ? "" : Path.GetDirectoryName(s.SingleOutputSetup) ?? ""
+                };
+                if (sfd.ShowDialog(FindForm()) == DialogResult.OK)
+                {
+                    _txtOutput.Text = sfd.FileName;
+                    s.SingleOutputSetup = sfd.FileName;
+                    AppSettings.Save();
+                }
+            };
             btnRunSingle.Click += (_, __) => RunSingleConversion();
 
             btnBrowseBatchIn.Click += (_, __) =>
             {
-                using var fbd = new FolderBrowserDialog { Description = "Select batch input folder (Solo)" };
+                var s = AppSettings.Current;
+                using var fbd = new FolderBrowserDialog
+                {
+                    Description = "Select batch input folder (Solo)",
+                    SelectedPath = s.BatchInputDir ?? ""
+                };
                 if (fbd.ShowDialog(FindForm()) == DialogResult.OK)
                 {
                     _txtBatchInputDir.Text = fbd.SelectedPath;
                     string xblaDir = Path.Combine(fbd.SelectedPath, "XBLA");
                     _txtBatchOutputDir.Text = xblaDir;
+
+                    s.BatchInputDir  = fbd.SelectedPath;
+                    s.BatchOutputDir = xblaDir;
 
                     // Auto-populate Output XEX names based on folder name
                     var folderName = Path.GetFileName(fbd.SelectedPath);
@@ -295,13 +334,54 @@ namespace XBLA_Setup_Editor.Controls
                         var xexBaseName = Path.GetFileNameWithoutExtension(_xexPath);
                         _txtOutputXex1.Text = Path.Combine(xexDir, $"{xexBaseName}_{folderName}1.xex");
                         _txtOutputXex2.Text = Path.Combine(xexDir, $"{xexBaseName}_{folderName}2.xex");
+                        s.OutputXex1 = _txtOutputXex1.Text;
+                        s.OutputXex2 = _txtOutputXex2.Text;
                     }
+                    AppSettings.Save();
                 }
             };
 
-            btnBrowseBatchOut.Click += (_, __) => { using var fbd = new FolderBrowserDialog(); if (fbd.ShowDialog(FindForm()) == DialogResult.OK) _txtBatchOutputDir.Text = fbd.SelectedPath; };
-            btnBrowseOutputXex1.Click += (_, __) => { using var sfd = new SaveFileDialog { Filter = "XEX files (*.xex)|*.xex" }; if (sfd.ShowDialog(FindForm()) == DialogResult.OK) _txtOutputXex1.Text = sfd.FileName; };
-            btnBrowseOutputXex2.Click += (_, __) => { using var sfd = new SaveFileDialog { Filter = "XEX files (*.xex)|*.xex" }; if (sfd.ShowDialog(FindForm()) == DialogResult.OK) _txtOutputXex2.Text = sfd.FileName; };
+            btnBrowseBatchOut.Click += (_, __) =>
+            {
+                var s = AppSettings.Current;
+                using var fbd = new FolderBrowserDialog { SelectedPath = s.BatchOutputDir ?? "" };
+                if (fbd.ShowDialog(FindForm()) == DialogResult.OK)
+                {
+                    _txtBatchOutputDir.Text = fbd.SelectedPath;
+                    s.BatchOutputDir = fbd.SelectedPath;
+                    AppSettings.Save();
+                }
+            };
+            btnBrowseOutputXex1.Click += (_, __) =>
+            {
+                var s = AppSettings.Current;
+                using var sfd = new SaveFileDialog
+                {
+                    Filter = "XEX files (*.xex)|*.xex",
+                    InitialDirectory = string.IsNullOrWhiteSpace(s.OutputXex1) ? "" : Path.GetDirectoryName(s.OutputXex1) ?? ""
+                };
+                if (sfd.ShowDialog(FindForm()) == DialogResult.OK)
+                {
+                    _txtOutputXex1.Text = sfd.FileName;
+                    s.OutputXex1 = sfd.FileName;
+                    AppSettings.Save();
+                }
+            };
+            btnBrowseOutputXex2.Click += (_, __) =>
+            {
+                var s = AppSettings.Current;
+                using var sfd = new SaveFileDialog
+                {
+                    Filter = "XEX files (*.xex)|*.xex",
+                    InitialDirectory = string.IsNullOrWhiteSpace(s.OutputXex2) ? "" : Path.GetDirectoryName(s.OutputXex2) ?? ""
+                };
+                if (sfd.ShowDialog(FindForm()) == DialogResult.OK)
+                {
+                    _txtOutputXex2.Text = sfd.FileName;
+                    s.OutputXex2 = sfd.FileName;
+                    AppSettings.Save();
+                }
+            };
 
             btnRunBatchSolo.Click += (_, __) => RunBatchSolo();
 
@@ -328,6 +408,23 @@ namespace XBLA_Setup_Editor.Controls
 
             RefreshLevelList();
             SetupTooltips();
+
+            // Restore last used paths
+            var saved = AppSettings.Current;
+            if (!string.IsNullOrWhiteSpace(saved.BatchInputDir))  _txtBatchInputDir.Text  = saved.BatchInputDir;
+            if (!string.IsNullOrWhiteSpace(saved.BatchOutputDir)) _txtBatchOutputDir.Text = saved.BatchOutputDir;
+            if (!string.IsNullOrWhiteSpace(saved.OutputXex1))     _txtOutputXex1.Text     = saved.OutputXex1;
+            if (!string.IsNullOrWhiteSpace(saved.OutputXex2))     _txtOutputXex2.Text     = saved.OutputXex2;
+            if (!string.IsNullOrWhiteSpace(saved.SingleInputSetup))  _txtInput.Text  = saved.SingleInputSetup;
+            if (!string.IsNullOrWhiteSpace(saved.SingleOutputSetup)) _txtOutput.Text = saved.SingleOutputSetup;
+
+            // Drag-and-drop on all path fields
+            EnableDrop(_txtInput);
+            EnableDrop(_txtOutput);
+            EnableDrop(_txtBatchInputDir,  foldersOnly: true);
+            EnableDrop(_txtBatchOutputDir, foldersOnly: true);
+            EnableDrop(_txtOutputXex1);
+            EnableDrop(_txtOutputXex2);
         }
 
         private void SetupTooltips()
@@ -509,6 +606,24 @@ namespace XBLA_Setup_Editor.Controls
                 if (!byName.ContainsKey(baseName)) byName[baseName] = path;
             }
 
+            // Pre-flight: warn about any expected setup files not found in the directory
+            var missingFiles = new List<string>();
+            foreach (var kvp in _soloBatchBaseToLevel)
+            {
+                var level = kvp.Value;
+                if (level.Equals("Cuba", StringComparison.OrdinalIgnoreCase)) continue; // Cuba is extracted from XEX
+                if (!TryResolveInputFile(byName, kvp.Key, out _))
+                    missingFiles.Add($"  {level,-16} ({kvp.Key})");
+            }
+            if (missingFiles.Count > 0)
+            {
+                var msg = $"The following setup files were not found in the input directory and will be skipped:\n\n"
+                        + string.Join("\n", missingFiles)
+                        + "\n\nContinue anyway?";
+                if (MessageBox.Show(FindForm(), msg, "Missing Files", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                    return;
+            }
+
             var levelToInputSetup = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var levelToBinPathPass1 = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var levelToBinSizePass1 = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -665,6 +780,22 @@ namespace XBLA_Setup_Editor.Controls
                     if (string.IsNullOrWhiteSpace(outXex1)) { MessageBox.Show(FindForm(), "Invalid Output XEX #1."); return; }
                     if (string.IsNullOrWhiteSpace(outXex2)) { MessageBox.Show(FindForm(), "Invalid Output XEX #2."); return; }
 
+                    // Warn if any output XEX path matches the source XEX (would overwrite it)
+                    if (!string.IsNullOrWhiteSpace(_xexPath))
+                    {
+                        string srcFull = Path.GetFullPath(_xexPath);
+                        bool out1Same  = string.Equals(Path.GetFullPath(outXex1), srcFull, StringComparison.OrdinalIgnoreCase);
+                        bool out2Same  = string.Equals(Path.GetFullPath(outXex2), srcFull, StringComparison.OrdinalIgnoreCase);
+                        if (out1Same || out2Same)
+                        {
+                            var which = out1Same && out2Same ? "Output XEX #1 and #2" : out1Same ? "Output XEX #1" : "Output XEX #2";
+                            if (MessageBox.Show(FindForm(),
+                                $"{which} is the same as the source XEX.\nThis will overwrite your original file.\n\nContinue?",
+                                "Overwrite Warning", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                                return;
+                        }
+                    }
+
                     _txtLog.AppendText("\r\n=== SPLIT PLAN ===\r\n");
                     XexSetupPatcher.PlanSplitAcrossTwoXex(_xexData, levelToBinSizePass1, allowMp, allowExtend, extendChunk, align, forceRepack, new[] { "Cuba" }, extraPoolSegs, out var p1, out var r1, out var rem, out var p2, out var r2);
 
@@ -689,8 +820,12 @@ namespace XBLA_Setup_Editor.Controls
                     var b1 = BuildBlobsForPlacements(p1, pass1Blobs, levelToInputSetup, exePath, repackDir, _txtLog);
                     var b2 = BuildBlobsForPlacements(p2, pass1Blobs, levelToInputSetup, exePath, repackDir, _txtLog);
 
-                    // Write in-memory XEX data (which may have 21990 patches) to a temp file
-                    // This ensures both outputs include any modifications made in other tabs
+                    // Collect pending changes from other tabs (e.g. MP weapon sets, text folder)
+                    // before writing to disk so both split outputs and their xdelta patches include them.
+                    var mainFormSplit = FindForm() as MainForm;
+                    if (mainFormSplit != null)
+                        _xexData = mainFormSplit.CollectAndGetXexData() ?? _xexData;
+
                     var tempXex = Path.GetTempFileName();
                     File.WriteAllBytes(tempXex, _xexData);
 
@@ -787,7 +922,13 @@ namespace XBLA_Setup_Editor.Controls
                     Directory.CreateDirectory(repackDir);
                     var b = BuildBlobsForPlacements(p, pass1Blobs, levelToInputSetup, exePath, repackDir, _txtLog);
 
-                    // Apply to current XEX data
+                    // Apply to current XEX data.
+                    // Collect pending changes from other tabs (e.g. MP weapon sets, text folder)
+                    // so they are included in the output file and any xdelta patch derived from it.
+                    var mainFormSingle = FindForm() as MainForm;
+                    if (mainFormSingle != null)
+                        _xexData = mainFormSingle.CollectAndGetXexData() ?? _xexData;
+
                     var tempPath = Path.GetTempFileName();
                     File.WriteAllBytes(tempPath, _xexData);
                     List<string> a;
@@ -872,21 +1013,67 @@ namespace XBLA_Setup_Editor.Controls
 
         private void ShowReport(string title, IEnumerable<string> lines)
         {
+            var reportText = string.Join(Environment.NewLine, lines);
             var form = new Form
             {
                 Text = title,
-                Width = DpiHelper.Scale(this, 800),
+                Width  = DpiHelper.Scale(this, 800),
                 Height = DpiHelper.Scale(this, 600)
             };
-            var textBox = new TextBox
+
+            var mainLayout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                Multiline = true,
-                ScrollBars = ScrollBars.Both,
-                Font = new Font("Consolas", 9 * DpiHelper.GetScaleFactor(this)),
-                Text = string.Join(Environment.NewLine, lines)
+                RowCount = 2,
+                ColumnCount = 1
             };
-            form.Controls.Add(textBox);
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, DpiHelper.Scale(this, 36)));
+
+            var textBox = new TextBox
+            {
+                Dock        = DockStyle.Fill,
+                Multiline   = true,
+                ScrollBars  = ScrollBars.Both,
+                Font        = new Font("Consolas", 9 * DpiHelper.GetScaleFactor(this)),
+                ReadOnly    = true,
+                Text        = reportText
+            };
+            mainLayout.Controls.Add(textBox, 0, 0);
+
+            var btnPanel = new FlowLayoutPanel
+            {
+                Dock          = DockStyle.Fill,
+                FlowDirection = FlowDirection.RightToLeft,
+                Padding       = new Padding(DpiHelper.Scale(this, 4))
+            };
+
+            var btnCopy = new Button { Text = "Copy to Clipboard", AutoSize = true, Height = DpiHelper.Scale(this, 28) };
+            btnCopy.Click += (_, __) =>
+            {
+                Clipboard.SetText(reportText);
+                MessageBox.Show(form, "Report copied to clipboard.", "Copied", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            };
+            btnPanel.Controls.Add(btnCopy);
+
+            var btnSave = new Button { Text = "Save Report...", AutoSize = true, Height = DpiHelper.Scale(this, 28) };
+            btnSave.Click += (_, __) =>
+            {
+                using var sfd = new SaveFileDialog
+                {
+                    Filter   = "Text files (*.txt)|*.txt|All Files (*.*)|*.*",
+                    FileName = title.Replace(" ", "_") + ".txt"
+                };
+                if (sfd.ShowDialog(form) == DialogResult.OK)
+                {
+                    File.WriteAllText(sfd.FileName, reportText);
+                    MessageBox.Show(form, $"Saved to:\n{sfd.FileName}", "Saved", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            };
+            btnPanel.Controls.Add(btnSave);
+
+            mainLayout.Controls.Add(btnPanel, 0, 1);
+            form.Controls.Add(mainLayout);
             form.ShowDialog(FindForm());
         }
 
@@ -918,6 +1105,28 @@ namespace XBLA_Setup_Editor.Controls
             foreach (var c in Path.GetInvalidFileNameChars())
                 s = s.Replace(c, '_');
             return s;
+        }
+
+        /// <summary>
+        /// Enables drag-and-drop of files or folders onto a read-only TextBox.
+        /// When foldersOnly is true and a file is dropped, the file's parent directory is used.
+        /// </summary>
+        private static void EnableDrop(TextBox txt, bool foldersOnly = false)
+        {
+            txt.AllowDrop = true;
+            txt.DragEnter += (s, e) =>
+            {
+                if (e.Data != null && e.Data.GetDataPresent(DataFormats.FileDrop))
+                    e.Effect = DragDropEffects.Copy;
+            };
+            txt.DragDrop += (s, e) =>
+            {
+                if (e.Data?.GetData(DataFormats.FileDrop) is not string[] files || files.Length == 0) return;
+                var dropped = files[0];
+                txt.Text = foldersOnly
+                    ? (Directory.Exists(dropped) ? dropped : (Path.GetDirectoryName(dropped) ?? dropped))
+                    : dropped;
+            };
         }
 
         private static bool TryResolveInputFile(Dictionary<string, string> byName, string baseName, out string path)

@@ -227,6 +227,14 @@ namespace XBLA_Setup_Editor.Controls
                 MaxLength = 3,
                 CharacterCasing = CharacterCasing.Upper
             };
+            _txtTextFolder3.TextChanged += (_, __) =>
+            {
+                if (_xexData != null && _txtTextFolder3.Text.Length == TEXT_FOLDER_LEN)
+                {
+                    _hasUnsavedChanges = true;
+                    NotifyXexModified();
+                }
+            };
             panel.Controls.Add(_txtTextFolder3);
 
             _chkWriteLanId = new CheckBox
@@ -425,11 +433,12 @@ namespace XBLA_Setup_Editor.Controls
             if (!_hasUnsavedChanges || _parser == null || _xexData == null)
                 return null;
 
-            // Apply changes to XEX data
+            // Apply changes to XEX data (weapon sets, select list, text folder)
+            // These are normally already applied in-place by NotifyXexModified, but
+            // we re-apply here to cover cases where the shared array was replaced
+            // (e.g. by File21990ImporterControl restoring from its original snapshot).
             var log = new List<string>();
             _parser.ApplyToXex(_xexData, log);
-
-            // Apply text folder patch
             var folderLog = new List<string>();
             ApplyTextFolderPatch(_xexData, _txtTextFolder3.Text, folderLog);
 
@@ -681,6 +690,8 @@ namespace XBLA_Setup_Editor.Controls
                 // Apply current changes to the data
                 var log = new List<string>();
                 _parser?.ApplyToXex(_xexData, log);
+                var folderLog = new List<string>();
+                ApplyTextFolderPatch(_xexData, _txtTextFolder3.Text, folderLog);
                 UpdateLanIdDisplay();
                 XexModified?.Invoke(this, new XexModifiedEventArgs(_xexData, TabDisplayName));
             }

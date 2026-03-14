@@ -551,6 +551,17 @@ namespace XBLA_Setup_Editor
         /// Collects modifications from all XEX tabs and applies them to the shared data.
         /// Called just before saving to ensure all changes are captured.
         /// </summary>
+        /// <summary>
+        /// Applies all pending tab changes to the shared XEX data and returns it.
+        /// Called by SetupPatchingControl before writing the temp XEX for batch patching,
+        /// so that MP weapon set / text folder / armor changes are included in the output.
+        /// </summary>
+        public byte[]? CollectAndGetXexData()
+        {
+            CollectTabModifications();
+            return _sharedXexData;
+        }
+
         private void CollectTabModifications()
         {
             // Get modifications from each XEX tab and apply them
