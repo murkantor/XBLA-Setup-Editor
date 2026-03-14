@@ -438,17 +438,29 @@ namespace XBLA_Setup_Editor
             } while (progress && remaining.Count > 0);
             foreach (var l in remaining) notPlaced.Add(l);
 
-            // Per-level placement summary
+            // Per-level placement summary (sorted by size descending)
             reportLines.Add("");
             reportLines.Add("=== PLACEMENT SUMMARY ===");
-            foreach (var levelName in PriorityOrder)
-            {
-                var p = placements.FirstOrDefault(pl => pl.LevelName.Equals(levelName, StringComparison.OrdinalIgnoreCase));
-                if (p == null) continue;
+            foreach (var p in placements.OrderByDescending(pl => pl.Size))
                 reportLines.Add($"  {p.LevelName,-14} -> {RegionLabel(p.Region),-20}  0x{p.FileOffset:X8}  ({FmtBytes(p.Size)})");
-            }
             foreach (var l in notPlaced)
                 reportLines.Add($"  {"[UNPLACED]",-14}    {l}");
+
+            // Region fill indicators
+            int spPoolCap  = MpHeadersStart - SharedReadOnlyEndExclusive;
+            int mpPoolCap  = SetupBlocksEndExclusive - MpHeadersStart;
+            int spPoolUsed = placements.Where(pl => pl.Region == RegionKind.SpPool).Sum(pl => pl.Size);
+            int mpPoolUsed = placements.Where(pl => pl.Region == RegionKind.MpPool).Sum(pl => pl.Size);
+            int fixedUsed  = placements.Where(pl => pl.Region == RegionKind.FixedSP).Sum(pl => pl.Size);
+            int tailUsed   = placements.Where(pl => pl.Region == RegionKind.CompactedMpTail).Sum(pl => pl.Size);
+            int extUsed    = placements.Where(pl => pl.Region == RegionKind.ExtendedXex).Sum(pl => pl.Size);
+            reportLines.Add("");
+            reportLines.Add("=== REGION USAGE ===");
+            reportLines.Add($"  BG Data pool   : {FmtBytes(spPoolUsed),9} / {FmtBytes(spPoolCap),9}  ({Pct(spPoolUsed, spPoolCap)})");
+            reportLines.Add($"  MP pool        : {FmtBytes(mpPoolUsed),9} / {FmtBytes(mpPoolCap),9}  ({Pct(mpPoolUsed, mpPoolCap)})");
+            if (fixedUsed > 0) reportLines.Add($"  Fixed slots    : {FmtBytes(fixedUsed)}");
+            if (tailUsed  > 0) reportLines.Add($"  Compact tail   : {FmtBytes(tailUsed)}");
+            if (extUsed   > 0) reportLines.Add($"  Extended (BSS) : {FmtBytes(extUsed)}  *** WILL CRASH ***");
 
             return placements;
         }
