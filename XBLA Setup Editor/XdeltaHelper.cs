@@ -181,6 +181,10 @@ namespace XBLA_Setup_Editor
         // USER INTERACTION - Single File
         // =====================================================================
 
+        /// <summary>Returns true if <paramref name="xexPath"/> is DefaultCE.xex (case-insensitive).</summary>
+        private static bool IsDefaultCE(string? xexPath) =>
+            string.Equals(Path.GetFileName(xexPath), "DefaultCE.xex", StringComparison.OrdinalIgnoreCase);
+
         /// <summary>
         /// Prompts the user to create an xdelta patch after saving a modified XEX.
         /// Always asks the user to select the vanilla/baseline XEX so the patch
@@ -189,7 +193,7 @@ namespace XBLA_Setup_Editor
         /// <param name="owner">Parent form for dialogs.</param>
         /// <param name="originalData">No longer used — kept for API compatibility.</param>
         /// <param name="savedFilePath">Path where the modified XEX was just saved.</param>
-        public static void OfferCreatePatch(IWin32Window owner, byte[] originalData, string savedFilePath)
+        public static void OfferCreatePatch(IWin32Window owner, byte[] originalData, string savedFilePath, string? loadedXexPath = null)
         {
             // Don't offer if xdelta3 isn't available
             if (!IsXdeltaAvailable())
@@ -207,27 +211,33 @@ namespace XBLA_Setup_Editor
 
             var dir = Path.GetDirectoryName(savedFilePath) ?? "";
 
-            // Ask the user to select the vanilla/baseline XEX.
-            // This is necessary because the loaded XEX may already be pre-modified;
-            // the patch must diff against the unmodified original (e.g. defaultCE.xex).
-            using var ofd = new OpenFileDialog
-            {
-                Title = "Select the vanilla / unmodified XEX to patch FROM (e.g. defaultCE.xex)",
-                Filter = "XEX files (*.xex)|*.xex|All files (*.*)|*.*",
-                InitialDirectory = dir,
-                FileName = "defaultCE.xex"
-            };
-
-            if (ofd.ShowDialog(owner) != DialogResult.OK)
-                return;
-
+            // If the user loaded DefaultCE.xex (the standard vanilla file), use it directly
+            // as the baseline — no need to ask. Otherwise prompt them to locate it.
             byte[] baselineData;
-            try { baselineData = File.ReadAllBytes(ofd.FileName); }
-            catch (Exception ex)
+            if (IsDefaultCE(loadedXexPath))
             {
-                MessageBox.Show(owner, $"Could not read baseline XEX:\n{ex.Message}",
-                    "XDelta Patch Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
+                baselineData = originalData;
+            }
+            else
+            {
+                using var ofd = new OpenFileDialog
+                {
+                    Title = "Select the vanilla / unmodified XEX to patch FROM (e.g. defaultCE.xex)",
+                    Filter = "XEX files (*.xex)|*.xex|All files (*.*)|*.*",
+                    InitialDirectory = dir,
+                    FileName = "defaultCE.xex"
+                };
+
+                if (ofd.ShowDialog(owner) != DialogResult.OK)
+                    return;
+
+                try { baselineData = File.ReadAllBytes(ofd.FileName); }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(owner, $"Could not read baseline XEX:\n{ex.Message}",
+                        "XDelta Patch Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
             }
 
             // Show save dialog for patch location
@@ -282,7 +292,7 @@ namespace XBLA_Setup_Editor
         /// Both patches are created from the same original file, allowing
         /// users to patch their copy into either version.
         /// </remarks>
-        public static void OfferCreateSplitPatches(IWin32Window owner, byte[] originalData, string savedFilePath1, string savedFilePath2)
+        public static void OfferCreateSplitPatches(IWin32Window owner, byte[] originalData, string savedFilePath1, string savedFilePath2, string? loadedXexPath = null)
         {
             // Don't offer if xdelta3 isn't available
             if (!IsXdeltaAvailable())
@@ -300,26 +310,33 @@ namespace XBLA_Setup_Editor
 
             var dir1 = Path.GetDirectoryName(savedFilePath1) ?? "";
 
-            // Ask the user to select the vanilla/baseline XEX.
-            // Both patches diff against the same unmodified original.
-            using var ofd = new OpenFileDialog
-            {
-                Title = "Select the vanilla / unmodified XEX to patch FROM (e.g. defaultCE.xex)",
-                Filter = "XEX files (*.xex)|*.xex|All files (*.*)|*.*",
-                InitialDirectory = dir1,
-                FileName = "defaultCE.xex"
-            };
-
-            if (ofd.ShowDialog(owner) != DialogResult.OK)
-                return;
-
+            // If the user loaded DefaultCE.xex (the standard vanilla file), use it directly
+            // as the baseline — no need to ask. Otherwise prompt them to locate it.
             byte[] baselineData;
-            try { baselineData = File.ReadAllBytes(ofd.FileName); }
-            catch (Exception ex)
+            if (IsDefaultCE(loadedXexPath))
             {
-                MessageBox.Show(owner, $"Could not read baseline XEX:\n{ex.Message}",
-                    "XDelta Patch Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
+                baselineData = originalData;
+            }
+            else
+            {
+                using var ofd = new OpenFileDialog
+                {
+                    Title = "Select the vanilla / unmodified XEX to patch FROM (e.g. defaultCE.xex)",
+                    Filter = "XEX files (*.xex)|*.xex|All files (*.*)|*.*",
+                    InitialDirectory = dir1,
+                    FileName = "defaultCE.xex"
+                };
+
+                if (ofd.ShowDialog(owner) != DialogResult.OK)
+                    return;
+
+                try { baselineData = File.ReadAllBytes(ofd.FileName); }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(owner, $"Could not read baseline XEX:\n{ex.Message}",
+                        "XDelta Patch Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
             }
 
             var successCount = 0;

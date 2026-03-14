@@ -537,7 +537,7 @@ namespace XBLA_Setup_Editor
                 // Offer to create xdelta patch for easy distribution
                 if (_originalXexData != null)
                 {
-                    XdeltaHelper.OfferCreatePatch(this, _originalXexData, sfd.FileName);
+                    XdeltaHelper.OfferCreatePatch(this, _originalXexData, sfd.FileName, _sharedXexPath);
                 }
             }
             catch (Exception ex)

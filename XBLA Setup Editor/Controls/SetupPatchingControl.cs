@@ -888,7 +888,7 @@ namespace XBLA_Setup_Editor.Controls
                         var originalData = mainForm?.GetOriginalXexData();
                         if (originalData != null)
                         {
-                            XdeltaHelper.OfferCreateSplitPatches(FindForm()!, originalData, outXex1, outXex2);
+                            XdeltaHelper.OfferCreateSplitPatches(FindForm()!, originalData, outXex1, outXex2, _xexPath);
                         }
                     }
                     finally
