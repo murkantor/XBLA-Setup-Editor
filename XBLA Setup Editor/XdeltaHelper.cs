@@ -40,6 +40,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace XBLA_Setup_Editor
@@ -136,15 +137,30 @@ namespace XBLA_Setup_Editor
                 };
 
                 process.Start();
-                var stderr = process.StandardError.ReadToEnd();
-                process.WaitForExit();
 
-                // Check for errors
-                if (process.ExitCode != 0)
+                // Read both streams concurrently to avoid deadlocks when
+                // xdelta3 fills its stdout/stderr pipe buffers.
+                var stdoutTask = Task.Run(() => process.StandardOutput.ReadToEnd());
+                var stderrTask = Task.Run(() => process.StandardError.ReadToEnd());
+                process.WaitForExit();
+                var stderr = stderrTask.Result;
+
+                // Some xdelta3 builds emit "Checksum verification is disabled" to
+                // stderr and exit non-zero even though the patch file was written
+                // successfully (it just lacks source-window Adler32 checksums).
+                // Treat the patch as valid if the output file exists and is non-empty;
+                // surface any xdelta3 output as a non-fatal warning instead.
+                bool patchExists = File.Exists(patchOutputPath) &&
+                                   new FileInfo(patchOutputPath).Length > 0;
+
+                if (process.ExitCode != 0 && !patchExists)
                 {
-                    error = $"xdelta3 failed (exit code {process.ExitCode}): {stderr}";
+                    error = $"xdelta3 failed (exit code {process.ExitCode}): {stderr}".Trim();
                     return false;
                 }
+
+                if (!string.IsNullOrWhiteSpace(stderr))
+                    error = $"xdelta3 warning: {stderr}".Trim();
 
                 return true;
             }
@@ -211,11 +227,12 @@ namespace XBLA_Setup_Editor
             // Create the patch
             if (CreatePatch(originalData, savedFilePath, sfd.FileName, out var error))
             {
-                MessageBox.Show(owner,
-                    $"Patch created successfully!\n\n{sfd.FileName}",
-                    "XDelta Patch",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
+                // Show success; include any non-fatal xdelta3 warnings (e.g. checksum notice).
+                var msg = string.IsNullOrWhiteSpace(error)
+                    ? $"Patch created successfully!\n\n{sfd.FileName}"
+                    : $"Patch created successfully!\n\n{sfd.FileName}\n\nNote: {error}";
+                MessageBox.Show(owner, msg, "XDelta Patch",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else
             {
@@ -266,6 +283,7 @@ namespace XBLA_Setup_Editor
 
             var successCount = 0;
             var errors = new System.Collections.Generic.List<string>();
+            var warnings = new System.Collections.Generic.List<string>();
 
             // Create patch for first XEX file
             var dir1 = Path.GetDirectoryName(savedFilePath1) ?? "";
@@ -273,7 +291,10 @@ namespace XBLA_Setup_Editor
             var patchPath1 = Path.Combine(dir1, $"{baseName1}.xdelta");
 
             if (CreatePatch(originalData, savedFilePath1, patchPath1, out var error1))
+            {
                 successCount++;
+                if (!string.IsNullOrWhiteSpace(error1)) warnings.Add($"Patch 1: {error1}");
+            }
             else
                 errors.Add($"Patch 1: {error1}");
 
@@ -283,23 +304,23 @@ namespace XBLA_Setup_Editor
             var patchPath2 = Path.Combine(dir2, $"{baseName2}.xdelta");
 
             if (CreatePatch(originalData, savedFilePath2, patchPath2, out var error2))
+            {
                 successCount++;
+                if (!string.IsNullOrWhiteSpace(error2)) warnings.Add($"Patch 2: {error2}");
+            }
             else
                 errors.Add($"Patch 2: {error2}");
 
             // Report results to user
             if (successCount == 2)
             {
-                // Both patches created successfully
-                MessageBox.Show(owner,
-                    $"Both patches created successfully!\n\n{patchPath1}\n{patchPath2}",
-                    "XDelta Patches",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
+                var msg = $"Both patches created successfully!\n\n{patchPath1}\n{patchPath2}";
+                if (warnings.Count > 0) msg += $"\n\nNote: {string.Join("\n", warnings)}";
+                MessageBox.Show(owner, msg, "XDelta Patches",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             else if (successCount == 1)
             {
-                // Partial success
                 MessageBox.Show(owner,
                     $"One patch created, one failed:\n\n{string.Join("\n", errors)}",
                     "XDelta Patches",
@@ -308,7 +329,6 @@ namespace XBLA_Setup_Editor
             }
             else
             {
-                // Both failed
                 MessageBox.Show(owner,
                     $"Failed to create patches:\n\n{string.Join("\n", errors)}",
                     "XDelta Patches Failed",

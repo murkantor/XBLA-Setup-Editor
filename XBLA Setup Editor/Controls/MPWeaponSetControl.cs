@@ -81,6 +81,7 @@ namespace XBLA_Setup_Editor.Controls
         private bool _beginnerMode = true;
         private bool _isApplyingBeginnerDefaults = false;
         private bool _hasUnsavedChanges = false;
+        private bool _isLoading = false;        // suppresses TextChanged during OnXexLoaded
 
         // --- Lookup dictionaries ---
         private readonly Dictionary<int, string> _weaponNames = new();
@@ -229,7 +230,7 @@ namespace XBLA_Setup_Editor.Controls
             };
             _txtTextFolder3.TextChanged += (_, __) =>
             {
-                if (_xexData != null && _txtTextFolder3.Text.Length == TEXT_FOLDER_LEN)
+                if (!_isLoading && _xexData != null && _txtTextFolder3.Text.Length == TEXT_FOLDER_LEN)
                 {
                     _hasUnsavedChanges = true;
                     NotifyXexModified();
@@ -361,6 +362,7 @@ namespace XBLA_Setup_Editor.Controls
 
         public void OnXexLoaded(byte[] xexData, string path)
         {
+            _isLoading = true;
             try
             {
                 _txtLog.Clear();
@@ -404,6 +406,10 @@ namespace XBLA_Setup_Editor.Controls
                 Log($"ERROR: {ex.Message}");
                 MessageBox.Show(FindForm(), ex.ToString(), "Load Failed",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                _isLoading = false;
             }
         }
 
